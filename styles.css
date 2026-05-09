@@ -1281,83 +1281,107 @@ textarea.share-link {
   color: var(--ink-500);
 }
 
-/* ─── Calendar (this week) ────────────────────────────────────────────── */
-.cal-list { display: flex; flex-direction: column; gap: 1rem; }
+/* ─── Calendar (this week) — compact coordination summary ─────────────── */
+.cal-list { display: flex; flex-direction: column; }
 
-.cal-summary {
+.cal-summary-line {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.6rem;
   flex-wrap: wrap;
-  margin-bottom: 1rem;
-  padding: 0.85rem 1rem;
-  background: linear-gradient(135deg, var(--cream-100), var(--cream-50));
+  font-size: 0.88rem;
+  color: var(--ink-700);
+  padding: 0.6rem 0.85rem;
+  background: var(--cream-100);
   border-radius: var(--r-md);
+  margin-bottom: 0.75rem;
 }
-.cal-summary-stat {
-  flex: 1;
-  min-width: 80px;
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-  padding: 0.4rem 0.5rem;
-}
-.cal-summary-stat .num {
-  font-family: var(--font-serif);
-  font-weight: 500;
-  font-size: 1.6rem;
-  line-height: 1;
-  color: var(--ink-900);
-}
-.cal-summary-stat .lbl {
-  font-size: 0.72rem;
-  color: var(--ink-500);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-top: 0.3rem;
-}
-.cal-summary-stat.conflict .num { color: var(--rose-400); }
-.cal-summary-stat.conflict .lbl { color: var(--rose-400); }
+.cal-summary-line strong { color: var(--ink-900); font-weight: 700; }
+.cal-summary-line .dot-sep { color: var(--ink-300); }
+.cal-summary-line .conflict { color: var(--rose-400); }
+.cal-summary-line .conflict strong { color: var(--rose-400); }
 
-.cal-section-head {
+.cal-block-head {
   font-family: var(--font-sans);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-700);
-  margin: 0.5rem 0 0.25rem;
+  color: var(--rose-400);
+  margin: 0.6rem 0 0.4rem;
 }
 
-.cal-event.conflict {
+.cal-conflicts {
   background: rgba(234, 142, 120, 0.08);
-  border-left: 3px solid var(--rose-400);
+  border: 1px solid var(--rose-300);
+  border-radius: var(--r-md);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.cal-conflict-row,
+.cal-row {
+  display: grid;
+  grid-template-columns: 75px 22px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  border-radius: 6px;
+}
+.cal-row:hover { background: var(--cream-50); }
+.cal-row.conflict {
+  background: rgba(234, 142, 120, 0.06);
+  border-left: 2px solid var(--rose-400);
   padding-left: 0.55rem;
 }
-
-.owner-badge.both {
-  background: linear-gradient(90deg, rgba(63, 78, 95, 0.12), rgba(199, 125, 79, 0.12));
-  color: var(--ink-700);
-  font-weight: 700;
-}
-
-.cal-both-group {
-  margin-top: 1rem;
-  background: var(--cream-50);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  padding: 0.5rem 0.85rem;
-}
-.cal-both-group > summary {
-  cursor: pointer;
-  font-size: 0.88rem;
-  color: var(--ink-700);
+.cal-row-time {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
   font-weight: 600;
-  padding: 0.4rem 0;
-  list-style: none;
+  color: var(--ink-500);
 }
-.cal-both-group > summary::-webkit-details-marker { display: none; }
-.cal-both-group[open] > summary { margin-bottom: 0.5rem; border-bottom: 1px dashed var(--line-2); }
-.cal-both-group .cal-event { background: transparent; }
+.cal-row-owner {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.cal-row-owner.jess  { background: rgba(63, 78, 95, 0.15); }
+.cal-row-owner.mike  { background: rgba(199, 125, 79, 0.18); }
+.cal-row-owner.asher { background: rgba(107, 175, 146, 0.18); }
+.cal-row-owner.both  {
+  background: linear-gradient(135deg, rgba(63,78,95,0.18), rgba(199,125,79,0.20));
+}
+.cal-row-title {
+  color: var(--ink-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-daygroup {
+  margin-bottom: 0.6rem;
+}
+.cal-day-label {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--ink-700);
+  letter-spacing: -0.01em;
+  margin: 0.4rem 0 0.2rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px dashed var(--line);
+}
+
+@media (max-width: 540px) {
+  .cal-conflict-row,
+  .cal-row { grid-template-columns: 60px 22px 1fr; gap: 0.4rem; }
+  .cal-row-time { font-size: 0.74rem; }
+}
 
 .cal-day { display: flex; flex-direction: column; gap: 0.4rem; }
 .cal-day-label {

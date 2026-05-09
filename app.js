@@ -617,77 +617,84 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       const tomorrow = new Date(today.getTime() + 86400000);
       const conflicts = findConflicts(events);
       const both = events.filter(e => e.owner === "both");
-      const single = events.filter(e => e.owner !== "both");
+      const conflictEvents = events.filter(e => conflicts.has(e));
 
-      const ownerLabel = (key) => {
-        if (key === "both") return { emoji: "🤝", name: "Both", className: "both" };
-        const o = window.PEOPLE[key] || window.PEOPLE.open;
-        return { emoji: o.emoji, name: o.name, className: key };
+      const ownerEmoji = (key) => {
+        if (key === "both") return "🤝";
+        const o = window.PEOPLE[key];
+        return o ? o.emoji : "❓";
       };
 
-      // Summary header
-      const summaryHtml = `
-        <div class="cal-summary">
-          <div class="cal-summary-stat"><span class="num">${events.length}</span><span class="lbl">events</span></div>
-          <div class="cal-summary-stat"><span class="num">${single.length}</span><span class="lbl">need coord</span></div>
-          <div class="cal-summary-stat"><span class="num">${both.length}</span><span class="lbl">both at it</span></div>
-          ${conflicts.size > 0
-            ? `<div class="cal-summary-stat conflict"><span class="num">${conflicts.size}</span><span class="lbl">⚠ conflicts</span></div>`
-            : ""}
+      // Compact one-line summary
+      const summaryLine = `
+        <div class="cal-summary-line">
+          <span><strong>${events.length}</strong> events</span>
+          <span class="dot-sep">·</span>
+          <span><strong>${both.length}</strong> 🤝 both</span>
+          <span class="dot-sep">·</span>
+          <span class="${conflicts.size > 0 ? "conflict" : ""}">
+            <strong>${conflicts.size}</strong> ⚠ conflict${conflicts.size === 1 ? "" : "s"}
+          </span>
         </div>
       `;
 
-      // Group single events by day
+      const dayLabel = (d) => {
+        const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        if (dd.getTime() === today.getTime())    return "Today";
+        if (dd.getTime() === tomorrow.getTime()) return "Tomorrow";
+        return dd.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+      };
+
+      const formatTime = (e) => e.start.allDay
+        ? "All day"
+        : new Date(e.start.iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
+      const renderRow = (e, isConflict) => `
+        <div class="cal-row ${isConflict ? "conflict" : ""}">
+          <span class="cal-row-time">${formatTime(e)}</span>
+          <span class="cal-row-owner ${e.owner}">${ownerEmoji(e.owner)}</span>
+          <span class="cal-row-title">${isConflict ? "⚠ " : ""}${escapeHTML(e.summary)}</span>
+        </div>
+      `;
+
+      // Conflicts block — top, red, full attention
+      const conflictsHtml = conflictEvents.length === 0 ? "" : `
+        <div class="cal-conflicts">
+          <div class="cal-block-head">⚠ Conflicts</div>
+          ${conflictEvents.map(e => `
+            <div class="cal-conflict-row">
+              <span class="cal-row-time">${dayLabel(new Date(e.start.iso))} ${formatTime(e)}</span>
+              <span class="cal-row-owner ${e.owner}">${ownerEmoji(e.owner)}</span>
+              <span class="cal-row-title">${escapeHTML(e.summary)}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+
+      // Day-grouped, compact one-liners (excluding conflict events — they're at the top)
+      const nonConflict = events.filter(e => !conflicts.has(e));
       const byDay = new Map();
-      single.forEach(e => {
+      nonConflict.forEach(e => {
         const d = new Date(e.start.iso); d.setHours(0,0,0,0);
         const key = d.toISOString();
         if (!byDay.has(key)) byDay.set(key, []);
         byDay.get(key).push(e);
       });
-      const renderEvent = (e, conflicted) => {
-        const lbl = ownerLabel(e.owner);
-        const t = e.start.allDay
-          ? "All day"
-          : new Date(e.start.iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+      const dayBlocksHtml = Array.from(byDay.entries()).map(([key, evs]) => {
+        const d = new Date(key);
         return `
-          <div class="cal-event ${conflicted ? "conflict" : ""}">
-            <span class="cal-time">${t}</span>
-            <span class="cal-title">${conflicted ? "⚠ " : ""}${escapeHTML(e.summary)}</span>
-            <span class="owner-badge ${lbl.className}">${lbl.emoji} ${lbl.name}</span>
+          <div class="cal-daygroup">
+            <div class="cal-day-label">${dayLabel(d)}</div>
+            ${evs.map(e => renderRow(e, false)).join("")}
           </div>
         `;
-      };
-
-      const singleHtml = single.length === 0 ? "" : `
-        <div class="cal-section-head">🚦 Need coordination</div>
-        ${Array.from(byDay.entries()).map(([key, evs]) => {
-          const d = new Date(key);
-          let label = d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
-          if (d.getTime() === today.getTime())    label = "Today · " + label;
-          if (d.getTime() === tomorrow.getTime()) label = "Tomorrow · " + label;
-          return `
-            <div class="cal-day">
-              <div class="cal-day-label">${label}</div>
-              ${evs.map(e => renderEvent(e, conflicts.has(e))).join("")}
-            </div>
-          `;
-        }).join("")}
-      `;
-
-      // "Both" events shown as a compact grouped list (no day grouping needed — it's just FYI)
-      const bothHtml = both.length === 0 ? "" : `
-        <details class="cal-both-group">
-          <summary>🤝 ${both.length} event${both.length === 1 ? "" : "s"} you're both at — tap to expand</summary>
-          ${both.map(e => renderEvent(e, false)).join("")}
-        </details>
-      `;
+      }).join("");
 
       const hiddenNote = filtered.hidden > 0
-        ? `<small>${filtered.hidden} hidden by filter · <a href="#" id="thisweek-tweak">tweak →</a></small>`
+        ? `<small>${filtered.hidden} hidden · <a href="#" id="thisweek-tweak">tweak →</a></small>`
         : "";
 
-      el.innerHTML = summaryHtml + singleHtml + bothHtml + `
+      el.innerHTML = summaryLine + conflictsHtml + dayBlocksHtml + `
         <div class="cal-foot">
           <button class="btn btn-ghost btn-sm" id="thisweek-refresh" type="button">↻ Refresh</button>
           ${hiddenNote}
