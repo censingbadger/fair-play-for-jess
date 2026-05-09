@@ -84,7 +84,7 @@ button { font-family: inherit; }
 
 ::selection { background: var(--peach-300); color: var(--ink-900); }
 
-/* ─── Typography ──────────────────────────────────────────────────── */
+/* ─── Typography ──────────────────────────────────────────────────────── */
 h1, h2, h3, h4 {
   font-family: var(--font-serif);
   font-weight: 500;
@@ -321,7 +321,7 @@ main {
   font-size: clamp(2.5rem, 6vw, 4.25rem);
   font-weight: 400;
   font-style: italic;
-  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-variation-settings: "SOFT" 100;
   margin-bottom: 1rem;
   background: linear-gradient(135deg, var(--ink-900) 30%, var(--rose-400) 70%);
   -webkit-background-clip: text;
@@ -1005,7 +1005,7 @@ textarea.share-link {
 .about-section ul { padding-left: 1.5rem; color: var(--ink-700); }
 .about-section li { margin-bottom: 0.5rem; }
 
-/* ─── Top-N lists (Dashboard) ──────────────────────────────────────────── */
+/* ─── Top-N lists (Dashboard) ─────────────────────────────────────────── */
 .top-list {
   margin: 0.5rem 0 0;
   padding-left: 1.25rem;
@@ -1061,7 +1061,7 @@ textarea.share-link {
   .sync-pill { padding: 0.4rem; }
 }
 
-/* ─── Toast ─────────────────────────────────────────────────────────── */
+/* ─── Toast ───────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;
   bottom: 1.5rem;
