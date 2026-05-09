@@ -31,7 +31,7 @@
       <button data-view="walk">Walk-through</button>
       <button data-view="deck">Deck</button>
       <button data-view="dashboard">Dashboard</button>
-      <button data-view="about">Save & share</button>
+      <button data-view="about">Settings</button>
     </nav>
     <span class="sync-pill" id="sync-pill" title="Live sync status">
       <span class="sync-dot"></span>
@@ -341,16 +341,16 @@
   </div>
 </section>
 
-<!-- ╔══════════════ ABOUT / SETTINGS ══════════════╗ -->
+<!-- ╔══════════════ SETTINGS ══════════════╗ -->
 <section class="view" data-view="about">
   <div class="surface elevated" style="padding: 2.5rem;">
-    <div class="eyebrow">Plan management</div>
-    <h2>Save, share, and what's next</h2>
-    <p class="lead">Edits sync between devices in real time when both you and Jess are using the same family code below.</p>
+    <div class="eyebrow">Settings</div>
+    <h2>Sync, reset, and what's next</h2>
+    <p class="lead">Edits sync between devices in real time when both you and Jess are using the same family code.</p>
 
     <div class="about-section">
       <h3>Family code (live sync)</h3>
-      <p style="font-size: 0.92rem; color: var(--ink-500);">Both you and Jess must enter the same code. Edits on one device appear on the other within ~1 second. The default below is fine for the two of you.</p>
+      <p style="font-size: 0.92rem; color: var(--ink-500);">Both you and Jess must enter the same code. Edits on one device appear on the other within ~1 second. The default is fine for the two of you.</p>
       <div class="settings-row">
         <input type="text" id="family-code-input" class="field-input" placeholder="mike-jess-2026" style="flex: 1; min-width: 220px; padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid var(--line-2); font: inherit; font-size: 0.95rem; background: var(--surface); color: var(--ink-900);">
         <button class="btn btn-gold" id="family-code-save" type="button">Save & resync</button>
@@ -359,26 +359,8 @@
     </div>
 
     <div class="about-section">
-      <h3>Backup share link</h3>
-      <p style="font-size: 0.92rem; color: var(--ink-500);">Alternative to live sync: generates a URL with your current plan baked in. Useful for snapshots or if sync is unavailable.</p>
-      <div class="settings-row">
-        <button class="btn btn-secondary" id="share-btn" type="button">Copy share link</button>
-      </div>
-      <textarea class="share-link" id="share-output" placeholder="Click 'Copy share link' to generate" readonly></textarea>
-    </div>
-
-    <div class="about-section">
-      <h3>Export / Import a backup</h3>
-      <div class="settings-row">
-        <button class="btn btn-secondary" id="export-btn" type="button">Export plan (.json)</button>
-        <label class="btn btn-secondary" for="import-input" style="cursor: pointer;">Import plan…</label>
-        <input id="import-input" type="file" accept="application/json" style="display: none;" />
-      </div>
-    </div>
-
-    <div class="about-section">
       <h3>Reset</h3>
-      <p style="font-size: 0.92rem; color: var(--ink-500);">Discards all discussion edits and goes back to Mike's original pre-fill.</p>
+      <p style="font-size: 0.92rem; color: var(--ink-500);">Discards all discussion edits — including the cover note — and goes back to Mike's original pre-fill.</p>
       <div class="settings-row">
         <button class="btn btn-ghost" id="reset-btn" type="button">Reset to pre-fill</button>
       </div>
@@ -390,11 +372,10 @@
         <li><strong>Asher Mode</strong> — 8 kid-ownable cards (Baseball Bag Check, Lunchbox Unpack, Room Baseline, Thank-You Notes…) with simple check-off, age-appropriate at 10.</li>
         <li><strong>Monthly Reset</strong> — surfaces the 7 reflection questions from your deck ("Which cards felt heavier?", "Is baseball crowding out marriage?") once a month.</li>
         <li><strong>Sunday Logistics Meeting</strong> prompt — the 20–30 min weekly cadence baked in.</li>
-        <li>Real-time sync between phones (no copy-pasting URLs).</li>
         <li>Daily / weekly push notifications: "Mike — trash night," "Jess — pickup at 4."</li>
         <li>Per-card history: how often does this card get re-shuffled? Is the load drifting?</li>
       </ul>
-      <p style="margin-top: 1rem; font-style: italic; color: var(--ink-500);">For Sunday: open this together. After we agree, we'll wire up sync + notifications.</p>
+      <p style="margin-top: 1rem; font-style: italic; color: var(--ink-500);">For Sunday: open this together. After we agree, we'll add notifications + Asher Mode.</p>
     </div>
 
     <div class="about-section">

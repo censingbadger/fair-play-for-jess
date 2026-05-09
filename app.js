@@ -755,26 +755,6 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     });
 
     // Share / export / import / reset
-    document.getElementById("share-btn").addEventListener("click", () => {
-      const link = shareLink();
-      const ta = document.getElementById("share-output");
-      ta.value = link;
-      ta.select();
-      try {
-        navigator.clipboard.writeText(link);
-        showToast("Share link copied to clipboard ✨");
-      } catch (e) {
-        showToast("Share link ready below ↓");
-      }
-    });
-    document.getElementById("export-btn").addEventListener("click", exportJSON);
-    document.getElementById("import-input").addEventListener("change", e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => importJSON(reader.result);
-      reader.readAsText(file);
-    });
     document.getElementById("reset-btn").addEventListener("click", resetAll);
 
     // Family code editor
