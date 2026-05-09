@@ -1508,9 +1508,11 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       icsSave.addEventListener("click", async () => {
         setIcsUrls({ jess: icsJessIn.value, mike: icsMikeIn.value });
         showToast("Saved. Fetching events…");
+        // Wipe stale cache from any previous failed proxy
+        try { localStorage.removeItem(ICS_CACHE_KEY); } catch (e) {}
         await fetchAllCalendars(true);
-        if (activeView === "dashboard") renderThisWeek();
         showToast("Calendar events loaded ✨");
+        setView("dashboard"); // jump to where the events appear
       });
     }
 
