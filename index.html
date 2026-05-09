@@ -447,24 +447,47 @@
       <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">Privacy note: anyone with the URL can read your calendar. URLs sync via the family code — keep that code private.</p>
 
       <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--ink-700);">Filter what shows up</h4>
-      <p style="font-size: 0.88rem; color: var(--ink-500);">Most work calendar entries are noise. Use these keyword rules so the "This week's calendar" panel only shows events that need coordination. Comma-separated, case-insensitive substring match.</p>
+      <p style="font-size: 0.88rem; color: var(--ink-500);">Most work calendar entries are noise. Use these rules so the "This week's calendar" panel only shows events that need coordination.</p>
 
       <div class="field">
-        <label>✅ Always show (matches override "always hide")</label>
-        <input type="text" id="cal-include" placeholder="Crushers, Asher, school, doctor, dentist, Boone, vacation, parent" autocomplete="off">
-        <div class="hint">Anything matching one of these always appears, even if it'd be hidden by the rule below.</div>
+        <label>
+          <input type="checkbox" id="cal-strict" style="margin-right: 0.5rem; vertical-align: middle;">
+          <strong>Strict mode</strong> — hide weekday work-hour events unless they match a rule below
+        </label>
+        <div class="hint">When ON, only events that match a keyword OR are on a weekend OR before/after work hours OR all-day will show. When OFF, all events show except those in "Always hide."</div>
       </div>
 
       <div class="field">
-        <label>🚫 Always hide</label>
-        <input type="text" id="cal-exclude" placeholder="Standup, 1:1, Sync, Faculty Meeting, Office Hours, OOO" autocomplete="off">
-        <div class="hint">Anything matching is hidden. Empty = show everything.</div>
+        <label>✅ Always show keywords <span style="color: var(--ink-500); font-weight: 400;">(comma-separated, case-insensitive)</span></label>
+        <input type="text" id="cal-include" placeholder="Asher, Crushers, school, dentist, drive, game, party, banquet" autocomplete="off">
+        <div class="hint">Matches override every other rule.</div>
+      </div>
+
+      <div class="field">
+        <label>🚫 Always hide keywords <span style="color: var(--ink-500); font-weight: 400;">(loose mode only)</span></label>
+        <input type="text" id="cal-exclude" placeholder="Standup, 1:1, Sync, OOO" autocomplete="off">
+        <div class="hint">Ignored when strict mode is on.</div>
+      </div>
+
+      <div class="field">
+        <label>Strict-mode auto-show rules</label>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.4rem;">
+          <label style="font-weight: 400;"><input type="checkbox" id="cal-weekends" style="margin-right: 0.5rem; vertical-align: middle;"> Show all weekend events (Sat/Sun)</label>
+          <label style="font-weight: 400;"><input type="checkbox" id="cal-allday" style="margin-right: 0.5rem; vertical-align: middle;"> Show all-day events</label>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 0.6rem; flex-wrap: wrap;">
+          <span style="font-size: 0.92rem; color: var(--ink-700);">Show events before</span>
+          <input type="number" id="cal-start" min="0" max="23" style="width: 4.5rem; padding: 0.4rem 0.6rem; border-radius: 8px; border: 1px solid var(--line-2); font: inherit; font-size: 0.92rem;">
+          <span style="font-size: 0.92rem; color: var(--ink-700);">am, or at/after</span>
+          <input type="number" id="cal-end" min="0" max="24" style="width: 4.5rem; padding: 0.4rem 0.6rem; border-radius: 8px; border: 1px solid var(--line-2); font: inherit; font-size: 0.92rem;">
+          <span style="font-size: 0.92rem; color: var(--ink-700);">(24-hr; 16 = 4pm)</span>
+        </div>
       </div>
 
       <div class="settings-row">
         <button class="btn btn-secondary" id="cal-filters-save" type="button">Save filters</button>
       </div>
-      <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">Filters sync to Jess too. The Dashboard will show "X hidden by filter" so you can sanity-check.</p>
+      <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">Filters sync to Jess too. The Dashboard shows "X hidden by filter" so you can sanity-check.</p>
     </div>
 
     <div class="about-section">

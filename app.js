@@ -309,28 +309,61 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   function getCalFilters() {
-    return Object.assign({ include: "", exclude: "" }, state.calFilters || {});
+    return Object.assign({
+      include: "",
+      exclude: "",
+      strictMode: false,         // when true: hide everything not whitelisted by a rule below
+      showWeekends: true,        // strict mode only: always show Sat/Sun events
+      showAllDay: true,          // strict mode only: always show all-day events
+      workStartHour: 9,          // strict mode only: events before this hour are always shown
+      workEndHour: 16            // strict mode only: events at/after this hour are always shown (4pm = 16)
+    }, state.calFilters || {});
   }
   function setCalFilters(f) {
-    state.calFilters = { include: (f.include || "").trim(), exclude: (f.exclude || "").trim() };
+    state.calFilters = Object.assign(getCalFilters(), {
+      include: (f.include || "").trim(),
+      exclude: (f.exclude || "").trim(),
+      strictMode: !!f.strictMode,
+      showWeekends: f.showWeekends !== false,
+      showAllDay: f.showAllDay !== false,
+      workStartHour: Math.max(0, Math.min(23, parseInt(f.workStartHour, 10) || 9)),
+      workEndHour:   Math.max(0, Math.min(24, parseInt(f.workEndHour, 10)   || 16))
+    });
     saveState();
   }
   function parseFilterList(s) {
     return (s || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
   }
-  // Returns { keep: [...], hidden: count } after applying include/exclude rules.
+  // Returns { keep, hidden } after applying include/exclude + strict-mode rules.
   function applyCalFilters(events) {
     const f = getCalFilters();
     const inc = parseFilterList(f.include);
     const exc = parseFilterList(f.exclude);
-    if (inc.length === 0 && exc.length === 0) return { keep: events, hidden: 0 };
     let hidden = 0;
     const keep = events.filter(e => {
       const t = (e.summary || "").toLowerCase();
       const matchInc = inc.length > 0 && inc.some(k => t.includes(k));
       const matchExc = exc.length > 0 && exc.some(k => t.includes(k));
-      // Always-show wins over always-hide
+
+      // Always-show keywords win unconditionally.
       if (matchInc) return true;
+
+      if (f.strictMode) {
+        // Whitelist: only weekend / all-day / outside-hours / matched-keyword events show.
+        const d = e.start && e.start.iso ? new Date(e.start.iso) : null;
+        if (d) {
+          const dow  = d.getDay(); // 0 = Sun, 6 = Sat
+          const hour = d.getHours();
+          if (f.showWeekends && (dow === 0 || dow === 6)) return true;
+          if (f.showAllDay && e.start.allDay)             return true;
+          if (hour <  f.workStartHour)                    return true;
+          if (hour >= f.workEndHour)                      return true;
+        }
+        hidden++;
+        return false;
+      }
+
+      // Loose mode: hide only if matched by always-hide.
       if (matchExc) { hidden++; return false; }
       return true;
     });
@@ -1516,18 +1549,37 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       });
     }
 
-    // Calendar filter keywords
-    const calIncIn = document.getElementById("cal-include");
-    const calExcIn = document.getElementById("cal-exclude");
+    // Calendar filter keywords + strict-mode rules
+    const calIncIn   = document.getElementById("cal-include");
+    const calExcIn   = document.getElementById("cal-exclude");
+    const calStrict  = document.getElementById("cal-strict");
+    const calWeekend = document.getElementById("cal-weekends");
+    const calAllDay  = document.getElementById("cal-allday");
+    const calStart   = document.getElementById("cal-start");
+    const calEnd     = document.getElementById("cal-end");
     const calFiltersSave = document.getElementById("cal-filters-save");
     if (calIncIn && calExcIn && calFiltersSave) {
       const f = getCalFilters();
-      calIncIn.value = f.include;
-      calExcIn.value = f.exclude;
+      calIncIn.value   = f.include;
+      calExcIn.value   = f.exclude;
+      if (calStrict)  calStrict.checked  = !!f.strictMode;
+      if (calWeekend) calWeekend.checked = !!f.showWeekends;
+      if (calAllDay)  calAllDay.checked  = !!f.showAllDay;
+      if (calStart)   calStart.value     = f.workStartHour;
+      if (calEnd)     calEnd.value       = f.workEndHour;
       calFiltersSave.addEventListener("click", () => {
-        setCalFilters({ include: calIncIn.value, exclude: calExcIn.value });
+        setCalFilters({
+          include: calIncIn.value,
+          exclude: calExcIn.value,
+          strictMode:    calStrict  ? calStrict.checked  : false,
+          showWeekends:  calWeekend ? calWeekend.checked : true,
+          showAllDay:    calAllDay  ? calAllDay.checked  : true,
+          workStartHour: calStart   ? calStart.value     : 9,
+          workEndHour:   calEnd     ? calEnd.value       : 16
+        });
         showToast("Filters saved");
-        if (activeView === "dashboard") renderThisWeek();
+        renderThisWeek();
+        setView("dashboard");
       });
     }
 
