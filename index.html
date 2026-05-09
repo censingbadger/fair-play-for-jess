@@ -645,10 +645,13 @@
       try {
         const ref = doc(db, "families", familyCode);
         await setDoc(ref, {
-          cards: stateObj.cards || {},
-          customCards: stateObj.customCards || [],
-          trips: Array.isArray(stateObj.trips) ? stateObj.trips : [],
-          note:  stateObj.note  || "",
+          cards:          stateObj.cards          || {},
+          customCards:    stateObj.customCards    || [],
+          trips:          Array.isArray(stateObj.trips) ? stateObj.trips : [],
+          icsUrls:        stateObj.icsUrls        || { jess: "", mike: "" },
+          calFilters:     stateObj.calFilters     || {},
+          currentMeeting: stateObj.currentMeeting || { step: 1, notes: {} },
+          note:           stateObj.note           || "",
           clientId,
           updatedAt: serverTimestamp()
         });
