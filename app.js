@@ -347,11 +347,11 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       const matchInc = inc.length > 0 && inc.some(k => t.includes(k));
       const matchExc = exc.length > 0 && exc.some(k => t.includes(k));
 
-      // Always-show keywords win unconditionally (override every other rule).
-      if (matchInc) return true;
-
-      // Always-hide keywords beat weekend/all-day/outside-hours auto-show.
+      // Always-hide wins everything. (If you don't want this event, you don't want it.)
       if (matchExc) { hidden++; return false; }
+
+      // Always-show forces events through strict-mode hiding.
+      if (matchInc) return true;
 
       if (f.strictMode) {
         // Whitelist: only weekend / all-day / outside-hours events show (since no include match).

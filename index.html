@@ -503,14 +503,14 @@
 
       <div class="field">
         <label>✅ Always show keywords <span style="color: var(--ink-500); font-weight: 400;">(comma-separated, case-insensitive)</span></label>
-        <textarea id="cal-include" rows="3" style="font-family: var(--font-sans); resize: vertical;" placeholder="Asher, Crushers, school, dentist, drive, game, party, banquet"></textarea>
-        <div class="hint">Matches override every other rule. <button type="button" id="cal-preset" style="margin-left: 0.5rem; background: none; border: 0; color: var(--rose-400); font-weight: 600; font-size: 0.85rem; cursor: pointer; text-decoration: underline; padding: 0;">↪ Use Mike's preset</button></div>
+        <textarea id="cal-include" rows="3" style="font-family: var(--font-sans); resize: vertical;" placeholder="Asher, Crushers, Glenwood, dentist, drive, game, party, banquet"></textarea>
+        <div class="hint">Forces events through strict-mode hiding. Loses to "Always hide" if both match. <button type="button" id="cal-preset" style="margin-left: 0.5rem; background: none; border: 0; color: var(--rose-400); font-weight: 600; font-size: 0.85rem; cursor: pointer; text-decoration: underline; padding: 0;">↪ Use Mike's preset</button></div>
       </div>
 
       <div class="field">
         <label>🚫 Always hide keywords</label>
         <textarea id="cal-exclude" rows="2" style="font-family: var(--font-sans); resize: vertical;" placeholder="grade, prep, teams, MBA, UBP, Undergraduate, Business, Lead, class, meeting"></textarea>
-        <div class="hint">Anything matching is hidden in both strict and loose mode (always-show keywords still win).</div>
+        <div class="hint">Wins all conflicts — hidden no matter what. Use for words that uniquely identify work events.</div>
       </div>
 
       <div class="field">
