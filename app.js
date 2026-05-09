@@ -36,11 +36,17 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     cards: {},          // overrides keyed by card id
     customCards: [],    // user-added cards (full card objects), id starts with "custom-"
     trips: null,        // null = use DEFAULT_TRIPS; array = user-edited list
+    icsUrls: { jess: "", mike: "" }, // Outlook calendar feed URLs
     note: DEFAULT_NOTE,
     walkIndex: 0,
     deckFilter: "all",  // all | discuss | open | jess | mike | split
     lastSaved: null
   };
+
+  // Calendar fetch cache lives outside Firestore — per-device, with TTL.
+  const ICS_CACHE_KEY = "fairplay-jess-ics-cache";
+  const ICS_TTL_MS    = 30 * 60 * 1000;
+  const ICS_PROXY     = "https://corsproxy.io/?";
 
   let state = loadState();
   let activeView = "cover";
@@ -109,6 +115,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       if (remote.cards) state.cards = remote.cards;
       if (Array.isArray(remote.customCards)) state.customCards = remote.customCards;
       if (Array.isArray(remote.trips)) state.trips = remote.trips;
+      if (remote.icsUrls && typeof remote.icsUrls === "object") state.icsUrls = remote.icsUrls;
       if (typeof remote.note === "string" && remote.note.length > 0) {
         state.note = remote.note;
       }
@@ -288,6 +295,172 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   function pct(part, whole) {
     if (whole <= 0) return 0;
     return Math.round((part / whole) * 100);
+  }
+
+  // ---------- CALENDAR FEEDS (Outlook .ics over CORS proxy) ----------
+  function getIcsUrls() {
+    return Object.assign({ jess: "", mike: "" }, state.icsUrls || {});
+  }
+  function setIcsUrls(urls) {
+    state.icsUrls = { jess: (urls.jess || "").trim(), mike: (urls.mike || "").trim() };
+    saveState();
+  }
+
+  // Tiny ICS parser. Handles VEVENT blocks: SUMMARY, LOCATION, DTSTART, DTEND.
+  // Skips RRULE (recurring) — those won't show. Good enough for most weekly meetings.
+  function parseIcs(text) {
+    if (!text) return [];
+    const unfolded = text.replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "");
+    const lines = unfolded.split(/\r?\n/);
+    const events = [];
+    let cur = null;
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (line === "BEGIN:VEVENT") { cur = {}; continue; }
+      if (line === "END:VEVENT") {
+        if (cur && cur.summary && cur.start && !cur.rrule) events.push(cur);
+        cur = null;
+        continue;
+      }
+      if (!cur) continue;
+      const colon = line.indexOf(":");
+      if (colon < 0) continue;
+      const semi = line.indexOf(";");
+      const propEnd = (semi > 0 && semi < colon) ? semi : colon;
+      const key = line.slice(0, propEnd).toUpperCase();
+      const value = line.slice(colon + 1);
+      if      (key === "SUMMARY")  cur.summary  = decodeIcsText(value);
+      else if (key === "LOCATION") cur.location = decodeIcsText(value);
+      else if (key === "DTSTART")  cur.start    = parseIcsDate(value);
+      else if (key === "DTEND")    cur.end      = parseIcsDate(value);
+      else if (key === "RRULE")    cur.rrule    = value;
+    }
+    return events;
+  }
+  function decodeIcsText(s) {
+    return s.replace(/\\n/g, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
+  }
+  function parseIcsDate(value) {
+    if (/^\d{8}$/.test(value)) {
+      const y = +value.slice(0, 4), m = +value.slice(4, 6) - 1, d = +value.slice(6, 8);
+      return { iso: new Date(y, m, d).toISOString(), allDay: true };
+    }
+    const m = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/);
+    if (!m) return null;
+    const [, y, mo, d, h, mi, s, z] = m;
+    const date = z === "Z"
+      ? new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +s))
+      : new Date(+y, +mo - 1, +d, +h, +mi, +s);
+    return { iso: date.toISOString(), allDay: false };
+  }
+
+  async function fetchIcs(url) {
+    if (!url) return [];
+    try {
+      const res = await fetch(ICS_PROXY + encodeURIComponent(url));
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return parseIcs(await res.text());
+    } catch (e) {
+      console.warn("[ics] fetch failed", url, e);
+      return [];
+    }
+  }
+
+  async function fetchAllCalendars(force) {
+    const urls = getIcsUrls();
+    if (!force) {
+      try {
+        const raw = localStorage.getItem(ICS_CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached.fetchedAt && (Date.now() - cached.fetchedAt) < ICS_TTL_MS) return cached;
+        }
+      } catch (e) {}
+    }
+    const [jess, mike] = await Promise.all([fetchIcs(urls.jess), fetchIcs(urls.mike)]);
+    const fresh = { jess, mike, fetchedAt: Date.now() };
+    try { localStorage.setItem(ICS_CACHE_KEY, JSON.stringify(fresh)); } catch (e) {}
+    return fresh;
+  }
+
+  function thisWeekEvents(cache) {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end   = new Date(start.getTime() + 7 * 86400000);
+    const out = [];
+    ["jess", "mike"].forEach(owner => {
+      (cache[owner] || []).forEach(e => {
+        if (!e.start || !e.start.iso) return;
+        const t = new Date(e.start.iso).getTime();
+        if (t >= start.getTime() && t < end.getTime()) {
+          out.push(Object.assign({}, e, { owner }));
+        }
+      });
+    });
+    return out.sort((a, b) => new Date(a.start.iso) - new Date(b.start.iso));
+  }
+
+  function renderThisWeek() {
+    const el = document.getElementById("dash-thisweek");
+    if (!el) return;
+    const urls = getIcsUrls();
+    const hasUrls = !!(urls.jess || urls.mike);
+    if (!hasUrls) {
+      el.innerHTML = `<div class="upcoming-empty">No calendar feeds yet — <a href="#" id="thisweek-setup">add Outlook URLs in Settings →</a></div>`;
+      const link = el.querySelector("#thisweek-setup");
+      if (link) link.addEventListener("click", e => { e.preventDefault(); setView("about"); });
+      return;
+    }
+    el.innerHTML = `<div class="upcoming-empty">Loading calendar events…</div>`;
+    fetchAllCalendars().then(cache => {
+      const events = thisWeekEvents(cache);
+      if (events.length === 0) {
+        el.innerHTML = `<div class="upcoming-empty">No events in the next 7 days. <button class="btn btn-ghost btn-sm" id="thisweek-refresh" type="button" style="margin-left:0.5rem">↻ Refresh</button></div>`;
+        const r = el.querySelector("#thisweek-refresh");
+        if (r) r.addEventListener("click", () => fetchAllCalendars(true).then(renderThisWeek));
+        return;
+      }
+      const today = new Date(); today.setHours(0,0,0,0);
+      const tomorrow = new Date(today.getTime() + 86400000);
+      const byDay = new Map();
+      events.forEach(e => {
+        const d = new Date(e.start.iso); d.setHours(0,0,0,0);
+        const key = d.toISOString();
+        if (!byDay.has(key)) byDay.set(key, []);
+        byDay.get(key).push(e);
+      });
+      const daysHtml = Array.from(byDay.entries()).map(([key, evs]) => {
+        const d = new Date(key);
+        let label = d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+        if (d.getTime() === today.getTime())    label = "Today · " + label;
+        if (d.getTime() === tomorrow.getTime()) label = "Tomorrow · " + label;
+        return `
+          <div class="cal-day">
+            <div class="cal-day-label">${label}</div>
+            ${evs.map(e => {
+              const owner = window.PEOPLE[e.owner] || window.PEOPLE.open;
+              const t = e.start.allDay
+                ? "All day"
+                : new Date(e.start.iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+              return `
+                <div class="cal-event">
+                  <span class="cal-time">${t}</span>
+                  <span class="cal-title">${escapeHTML(e.summary)}</span>
+                  <span class="owner-badge ${e.owner}">${owner.emoji} ${owner.name}</span>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }).join("");
+      el.innerHTML = daysHtml + `
+        <div class="cal-foot">
+          <button class="btn btn-ghost btn-sm" id="thisweek-refresh" type="button">↻ Refresh</button>
+          <small>Updated ${new Date(cache.fetchedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</small>
+        </div>
+      `;
+      const r = el.querySelector("#thisweek-refresh");
+      if (r) r.addEventListener("click", () => fetchAllCalendars(true).then(renderThisWeek));
+    });
   }
 
   // ---------- VIEW ROUTING ----------
@@ -1030,8 +1203,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     document.getElementById("dash-mike-year").textContent  = Math.round(time.mike  * 52).toLocaleString();
     document.getElementById("dash-asher-year").textContent = Math.round(time.asher * 52).toLocaleString();
 
-    // Coming up — next active trips
+    // Coming up — next active trips + this week's calendar events
     renderUpcomingTrips();
+    renderThisWeek();
 
     // Suits
     document.getElementById("dash-suits").innerHTML = renderSuitStack(cards);
@@ -1193,6 +1367,23 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         showToast(`Family code set: ${newCode}`);
         // Re-init Firestore subscription on the new code
         if (window.fpSync) window.fpSync.init(newCode, applyRemoteState);
+      });
+    }
+
+    // Calendar feeds (.ics URLs)
+    const icsJessIn = document.getElementById("ics-jess");
+    const icsMikeIn = document.getElementById("ics-mike");
+    const icsSave   = document.getElementById("ics-save");
+    if (icsJessIn && icsMikeIn && icsSave) {
+      const cur = getIcsUrls();
+      icsJessIn.value = cur.jess;
+      icsMikeIn.value = cur.mike;
+      icsSave.addEventListener("click", async () => {
+        setIcsUrls({ jess: icsJessIn.value, mike: icsMikeIn.value });
+        showToast("Saved. Fetching events…");
+        await fetchAllCalendars(true);
+        if (activeView === "dashboard") renderThisWeek();
+        showToast("Calendar events loaded ✨");
       });
     }
 

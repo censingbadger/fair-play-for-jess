@@ -351,6 +351,14 @@
   </div>
 
   <div class="surface" style="margin-bottom: 1rem;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+      <h3 style="margin: 0;">This week's calendar</h3>
+      <small style="color: var(--ink-500);">Outlook · refreshes every 30 min</small>
+    </div>
+    <div id="dash-thisweek" class="cal-list" style="margin-top: 1rem;"></div>
+  </div>
+
+  <div class="surface" style="margin-bottom: 1rem;">
     <h3>By suit</h3>
     <div class="suit-stack" id="dash-suits" style="margin-top: 1.25rem;"></div>
   </div>
@@ -408,6 +416,35 @@
         <button class="btn btn-gold" id="family-code-save" type="button">Save & resync</button>
       </div>
       <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">Tip: text Jess this URL plus the family code so she can join.</p>
+    </div>
+
+    <div class="about-section">
+      <h3>📅 Outlook calendar feeds</h3>
+      <p style="font-size: 0.92rem; color: var(--ink-500);">Paste each of your Outlook "Publish a calendar" ICS URLs. Events from the next 7 days appear on the Dashboard's "This week's calendar" panel, color-coded by owner.</p>
+      <details style="margin: 0.5rem 0 1rem; font-size: 0.88rem; color: var(--ink-700);">
+        <summary style="cursor: pointer; color: var(--ink-900); font-weight: 600;">How to get an ICS URL from Outlook</summary>
+        <ol style="padding-left: 1.25rem; margin-top: 0.5rem; line-height: 1.7;">
+          <li>Open <strong>outlook.office.com</strong> in a browser, sign in.</li>
+          <li>Click the gear ⚙ → <strong>View all Outlook settings</strong> at the bottom.</li>
+          <li><strong>Calendar → Shared calendars → Publish a calendar</strong>.</li>
+          <li>Pick your Calendar, set permission to <strong>"Can view all details."</strong></li>
+          <li>Click <strong>Publish</strong>. Two links appear — copy the <strong>ICS</strong> link (ends in <code>.ics</code>).</li>
+          <li>Paste below.</li>
+        </ol>
+        <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">If "Publish a calendar" is missing, your IT may have disabled it. Tell me and we'll switch approaches.</p>
+      </details>
+      <div class="field">
+        <label>🐧 Jess's Outlook ICS URL</label>
+        <input type="url" id="ics-jess" placeholder="https://outlook.office365.com/owa/calendar/.../calendar.ics" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>🐱 Mike's Outlook ICS URL</label>
+        <input type="url" id="ics-mike" placeholder="https://outlook.office365.com/owa/calendar/.../calendar.ics" autocomplete="off">
+      </div>
+      <div class="settings-row">
+        <button class="btn btn-gold" id="ics-save" type="button">Save & fetch</button>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">Privacy note: anyone with the URL can read your calendar. URLs sync via the family code — keep that code private.</p>
     </div>
 
     <div class="about-section">
