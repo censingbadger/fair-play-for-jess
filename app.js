@@ -46,7 +46,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   // Calendar fetch cache lives outside Firestore — per-device, with TTL.
   const ICS_CACHE_KEY = "fairplay-jess-ics-cache";
   const ICS_TTL_MS    = 30 * 60 * 1000;
-  const ICS_PROXY     = "https://corsproxy.io/?";
+  const ICS_PROXY     = "https://api.codetabs.com/v1/proxy?quest=";
 
   let state = loadState();
   let activeView = "cover";
