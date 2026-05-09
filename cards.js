@@ -515,6 +515,29 @@ window.ASHER_CARDS = [
   "Thank-You Notes / Coach Appreciation"
 ];
 
+// Trips & milestones — long-term things on the horizon.
+// Status: "planning" | "booked" | "done".
+window.DEFAULT_TRIPS = [
+  {
+    id: "trip-china",
+    title: "China",
+    icon: "🇨🇳",
+    owner: "jess",
+    targetDate: "2027-03-15",
+    status: "planning",
+    notes: "Jess's plan. Itinerary, flights, lodging, visas, packing."
+  },
+  {
+    id: "trip-boone",
+    title: "Boone skiing",
+    icon: "⛷️",
+    owner: "mike",
+    targetDate: "2026-12-15",
+    status: "planning",
+    notes: "Mike's plan. Cabin, lift tickets, gear, drive logistics."
+  }
+];
+
 // Monthly Reset Questions — for Phase 2 "Monthly Reset" screen (from the docx).
 window.RESET_QUESTIONS = [
   "Which cards felt heavier than expected?",

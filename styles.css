@@ -1030,6 +1030,114 @@ textarea.share-link {
   line-height: 1.5;
 }
 
+/* ─── Trips & milestones ──────────────────────────────────────────────── */
+.trips-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.trip-card {
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 200ms ease, border-color 150ms ease;
+  border: 1px solid var(--line);
+}
+.trip-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: var(--line-2);
+}
+.trip-card.trip-done { opacity: 0.6; }
+.trip-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+}
+.trip-icon { font-size: 2.25rem; line-height: 1; }
+.trip-title-block h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.25rem;
+  margin: 0 0 0.4rem;
+}
+.trip-meta { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.trip-when { text-align: right; }
+.trip-date {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.1rem;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+}
+.trip-away {
+  font-size: 0.78rem;
+  color: var(--ink-500);
+  font-weight: 500;
+  margin-top: 0.15rem;
+}
+.trip-notes {
+  font-family: var(--font-serif);
+  color: var(--ink-700);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 1rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.trip-status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--r-pill);
+}
+.trip-status-pill.trip-planning { background: rgba(234, 142, 120, 0.15); color: var(--rose-400); }
+.trip-status-pill.trip-booked   { background: rgba(127, 160, 104, 0.15); color: var(--sage-500); }
+.trip-status-pill.trip-done     { background: rgba(168, 162, 158, 0.20); color: var(--ink-500); }
+
+/* Modal status pills for trips reuse .status-pills with new active colors */
+.status-pills button.active.planning { background: var(--rose-400); color: white; border-color: var(--rose-400); }
+.status-pills button.active.booked   { background: var(--sage-500); color: white; border-color: var(--sage-500); }
+.status-pills button.active.done     { background: var(--ink-500);  color: white; border-color: var(--ink-500); }
+
+/* Dashboard "Coming up" rows */
+.upcoming-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.upcoming-empty {
+  font-size: 0.92rem;
+  color: var(--ink-500);
+  font-style: italic;
+}
+.upcoming-empty a { color: var(--ink-700); text-decoration: underline; }
+.upcoming-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--r-md);
+  background: var(--cream-100);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.upcoming-row:hover { background: var(--cream-200); }
+.upcoming-icon { font-size: 1.5rem; line-height: 1; }
+.upcoming-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.05rem;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+}
+.upcoming-sub {
+  font-size: 0.82rem;
+  color: var(--ink-500);
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 540px) {
+  .trip-head { grid-template-columns: auto 1fr; }
+  .trip-when { grid-column: 1 / -1; text-align: left; padding-left: 3.25rem; }
+}
+
 /* ─── Sync pill (header) ──────────────────────────────────────────────── */
 .sync-pill {
   display: inline-flex;

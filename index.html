@@ -28,6 +28,7 @@
       <button data-view="cover">Cover</button>
       <button data-view="primer">How it works</button>
       <button data-view="dashboard">Dashboard</button>
+      <button data-view="trips">Trips</button>
       <button data-view="walk">Walk-through</button>
       <button data-view="deck">Deck</button>
       <button data-view="about">Settings</button>
@@ -217,6 +218,22 @@
   </div>
 </section>
 
+<!-- ╔══════════════ TRIPS ══════════════╗ -->
+<section class="view" data-view="trips">
+  <div class="section-head">
+    <div class="eyebrow">Coming up</div>
+    <h2>Trips & milestones</h2>
+    <p class="lead">Long-term things on the horizon. Each one has a target month, an owner, and a status. Click a trip to edit it; tap "Add trip" to add a new one.</p>
+  </div>
+
+  <div class="deck-controls">
+    <div style="flex: 1"></div>
+    <button class="btn btn-gold" id="add-trip-btn" type="button">＋ Add trip</button>
+  </div>
+
+  <div id="trips-list" class="trips-list"></div>
+</section>
+
 <!-- ╔══════════════ WALKTHROUGH ══════════════╗ -->
 <section class="view" data-view="walk">
   <div class="walkthrough">
@@ -323,6 +340,14 @@
       <span class="item split"><span class="dot"></span>Split</span>
       <span class="item open"><span class="dot"></span>Open</span>
     </div>
+  </div>
+
+  <div class="surface" style="margin-bottom: 1rem;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+      <h3 style="margin: 0;">Coming up</h3>
+      <a href="#" id="dash-trips-link" style="font-size: 0.85rem; color: var(--ink-500); text-decoration: none;">All trips →</a>
+    </div>
+    <div id="dash-upcoming" class="upcoming-list" style="margin-top: 1rem;"></div>
   </div>
 
   <div class="surface" style="margin-bottom: 1rem;">
@@ -498,6 +523,7 @@
         await setDoc(ref, {
           cards: stateObj.cards || {},
           customCards: stateObj.customCards || [],
+          trips: Array.isArray(stateObj.trips) ? stateObj.trips : [],
           note:  stateObj.note  || "",
           clientId,
           updatedAt: serverTimestamp()
