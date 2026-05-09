@@ -35,6 +35,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   const initialState = {
     cards: {},          // overrides keyed by card id
     customCards: [],    // user-added cards (full card objects), id starts with "custom-"
+    trips: null,        // null = use DEFAULT_TRIPS; array = user-edited list
     note: DEFAULT_NOTE,
     walkIndex: 0,
     deckFilter: "all",  // all | discuss | open | jess | mike | split
@@ -93,7 +94,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (!applyingRemote && window.fpSync) {
       if (pushTimer) clearTimeout(pushTimer);
       pushTimer = setTimeout(() => {
-        window.fpSync.push(state, getFamilyCode());
+        // Materialize trips (null → defaults) so remote devices see seeds.
+        const payload = Object.assign({}, state, { trips: getTrips() });
+        window.fpSync.push(payload, getFamilyCode());
         pushTimer = null;
       }, 500);
     }
@@ -105,6 +108,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     try {
       if (remote.cards) state.cards = remote.cards;
       if (Array.isArray(remote.customCards)) state.customCards = remote.customCards;
+      if (Array.isArray(remote.trips)) state.trips = remote.trips;
       if (typeof remote.note === "string" && remote.note.length > 0) {
         state.note = remote.note;
       }
@@ -114,6 +118,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       renderCover();
       if (activeView === "deck")      renderDeck();
       if (activeView === "walk")      renderWalk();
+      if (activeView === "trips")     renderTrips();
       if (activeView === "dashboard") renderDashboard();
       if (!isInitial) showToast("Updated by Jess ✨");
     } finally {
@@ -179,6 +184,63 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     saveState();
   }
 
+  // ---------- TRIPS ----------
+  function getTrips() {
+    // null = first run, fall back to defaults; explicit [] respects "user cleared all"
+    if (state.trips === null || state.trips === undefined) {
+      return (window.DEFAULT_TRIPS || []).map(t => Object.assign({}, t));
+    }
+    return state.trips.slice();
+  }
+
+  function saveTrips(list) {
+    state.trips = list;
+    saveState();
+  }
+
+  function upsertTrip(trip) {
+    const list = getTrips();
+    const i = list.findIndex(t => t.id === trip.id);
+    if (i >= 0) list[i] = trip; else list.push(trip);
+    saveTrips(list);
+  }
+
+  function deleteTrip(id) {
+    saveTrips(getTrips().filter(t => t.id !== id));
+  }
+
+  // Sort: active (planning/booked) by soonest date, then done at the bottom.
+  function sortedTrips() {
+    return getTrips().slice().sort((a, b) => {
+      const aDone = a.status === "done", bDone = b.status === "done";
+      if (aDone !== bDone) return aDone ? 1 : -1;
+      return (a.targetDate || "").localeCompare(b.targetDate || "");
+    });
+  }
+
+  function tripDateLabel(isoDate) {
+    if (!isoDate) return "No date set";
+    const d = new Date(isoDate + "T00:00:00");
+    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+
+  function tripTimeAway(isoDate) {
+    if (!isoDate) return "";
+    const target = new Date(isoDate + "T00:00:00");
+    const days = Math.round((target - new Date()) / 86400000);
+    if (days === 0) return "today";
+    if (days < 0) {
+      const ago = Math.abs(days);
+      if (ago < 30)  return `${ago} day${ago === 1 ? "" : "s"} ago`;
+      if (ago < 365) { const m = Math.round(ago / 30); return `${m} month${m === 1 ? "" : "s"} ago`; }
+      const y = Math.round(ago / 365); return `${y} year${y === 1 ? "" : "s"} ago`;
+    }
+    if (days < 7)   return `in ${days} day${days === 1 ? "" : "s"}`;
+    if (days < 30)  { const w = Math.round(days / 7);  return `in ${w} week${w === 1 ? "" : "s"}`; }
+    if (days < 365) { const m = Math.round(days / 30); return `in ${m} month${m === 1 ? "" : "s"}`; }
+    const y = Math.round(days / 365); return `in ${y} year${y === 1 ? "" : "s"}`;
+  }
+
   // ---------- COMPUTE ----------
   function timeSplit(card) {
     // Returns { jess, mike, asher, open } — hours per week, fractional.
@@ -242,6 +304,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     // Re-render dynamic views on entry.
     if (name === "deck")      renderDeck();
     if (name === "walk")      renderWalk();
+    if (name === "trips")     renderTrips();
     if (name === "dashboard") renderDashboard();
   }
 
@@ -289,7 +352,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   // Renders an <ol> of the top-N cards by mental-load weight to `who`
-  // ("jess" | "mike" | "asher"). Returns innerHTML for the <ol>.
+  // ("jess" | "mike"). Returns innerHTML for the <ol>.
   function renderTopList(cards, who) {
     const ranked = cards
       .map(c => ({ c, l: mentalLoadSplit(c) }))
@@ -322,7 +385,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     return `<div class="split-bar thick">${renderSplitBarInner(parts)}</div>`;
   }
 
-  // Renders the per-suit stack used on Dashboard.
+  // Renders the per-suit stack used on Snapshot + Dashboard.
   function renderSuitStack(cards) {
     let html = "";
     Object.values(window.SUITS).forEach(suit => {
@@ -545,6 +608,188 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       closeModal();
       if (activeView === "deck")      renderDeck();
       if (activeView === "walk")      renderWalk();
+      if (activeView === "dashboard") renderDashboard();
+    });
+  }
+
+  // ---------- RENDER: TRIPS ----------
+  function renderTrips() {
+    const wrap = document.getElementById("trips-list");
+    if (!wrap) return;
+    const list = sortedTrips();
+    if (list.length === 0) {
+      wrap.innerHTML = `<div class="surface" style="text-align:center; color: var(--ink-500);">No trips yet — tap "Add trip" to add one.</div>`;
+      return;
+    }
+    wrap.innerHTML = list.map(t => renderTripCard(t)).join("");
+    wrap.querySelectorAll("[data-trip-id]").forEach(el => {
+      el.addEventListener("click", () => openTripModal(el.dataset.tripId));
+    });
+  }
+
+  function renderTripCard(t) {
+    const owner = window.PEOPLE[t.owner] || window.PEOPLE.open;
+    const statusLabel = t.status === "booked" ? "Booked" : t.status === "done" ? "Done" : "Planning";
+    return `
+      <div class="surface trip-card trip-${t.status}" data-trip-id="${t.id}" role="button" tabindex="0">
+        <div class="trip-head">
+          <span class="trip-icon">${t.icon || "🗓️"}</span>
+          <div class="trip-title-block">
+            <h3>${escapeHTML(t.title)}</h3>
+            <div class="trip-meta">
+              <span class="owner-badge ${t.owner}">${owner.emoji} ${owner.name}</span>
+              <span class="trip-status-pill trip-${t.status}">${statusLabel}</span>
+            </div>
+          </div>
+          <div class="trip-when">
+            <div class="trip-date">${escapeHTML(tripDateLabel(t.targetDate))}</div>
+            <div class="trip-away">${escapeHTML(tripTimeAway(t.targetDate))}</div>
+          </div>
+        </div>
+        ${t.notes ? `<p class="trip-notes">${escapeHTML(t.notes)}</p>` : ""}
+      </div>
+    `;
+  }
+
+  // The "Coming up" surface on the Dashboard — next 3 active trips.
+  function renderUpcomingTrips() {
+    const el = document.getElementById("dash-upcoming");
+    if (!el) return;
+    const list = sortedTrips().filter(t => t.status !== "done").slice(0, 3);
+    if (list.length === 0) {
+      el.innerHTML = `<div class="upcoming-empty">No trips on the horizon. <a href="#" id="upcoming-add">Add one →</a></div>`;
+      const add = el.querySelector("#upcoming-add");
+      if (add) add.addEventListener("click", e => { e.preventDefault(); openTripModal(); });
+      return;
+    }
+    el.innerHTML = list.map(t => {
+      const owner = window.PEOPLE[t.owner] || window.PEOPLE.open;
+      return `
+        <div class="upcoming-row" data-trip-id="${t.id}" role="button" tabindex="0">
+          <span class="upcoming-icon">${t.icon || "🗓️"}</span>
+          <div class="upcoming-body">
+            <div class="upcoming-title">${escapeHTML(t.title)}</div>
+            <div class="upcoming-sub">${escapeHTML(tripDateLabel(t.targetDate))} · ${escapeHTML(tripTimeAway(t.targetDate))}</div>
+          </div>
+          <span class="owner-badge ${t.owner}">${owner.emoji} ${owner.name}</span>
+        </div>
+      `;
+    }).join("");
+    el.querySelectorAll("[data-trip-id]").forEach(row => {
+      row.addEventListener("click", () => openTripModal(row.dataset.tripId));
+    });
+  }
+
+  // ---------- MODAL: TRIP DETAIL ----------
+  function openTripModal(id) {
+    const isNew = !id;
+    const list = getTrips();
+    const t = isNew
+      ? { id: "trip-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6),
+          title: "", icon: "🗓️", owner: "open", targetDate: "", status: "planning", notes: "" }
+      : (list.find(x => x.id === id) || null);
+    if (!t) return;
+
+    const m = document.getElementById("modal");
+    m.innerHTML = `
+      <button class="close" aria-label="Close" type="button">×</button>
+      <h2>${isNew ? "＋ Add a trip" : `${t.icon || "🗓️"} ${escapeHTML(t.title) || "Trip"}`}</h2>
+      <div class="desc">${isNew ? "Long-term things on the horizon — flights, lodging, the works." : "Edit anything below. Saves automatically."}</div>
+
+      <div class="field">
+        <label>Title <span style="color: var(--rose-400)">*</span></label>
+        <input type="text" id="trip-title" placeholder="e.g. China · Boone skiing" autocomplete="off" value="${escapeHTML(t.title || "")}" />
+      </div>
+
+      <div class="field">
+        <label>Icon (emoji)</label>
+        <input type="text" id="trip-icon" maxlength="4" style="width: 6rem;" value="${escapeHTML(t.icon || "🗓️")}" />
+      </div>
+
+      <div class="field">
+        <label>Who's planning</label>
+        <select id="trip-owner">
+          <option value="jess"  ${t.owner==="jess"?"selected":""}>🐧 Jess</option>
+          <option value="mike"  ${t.owner==="mike"?"selected":""}>🐱 Mike</option>
+          <option value="asher" ${t.owner==="asher"?"selected":""}>⚾ Asher</option>
+          <option value="split" ${t.owner==="split"?"selected":""}>🤝 Split</option>
+          <option value="open"  ${t.owner==="open"?"selected":""}>❓ Open</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Target date</label>
+        <input type="date" id="trip-date" value="${escapeHTML(t.targetDate || "")}" />
+        <div class="hint">Approximate is fine — the dashboard shows month + year.</div>
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <div class="status-pills" id="trip-status-pills">
+          <button data-status="planning" type="button" class="${t.status==="planning"?"active planning":""}">📋 Planning</button>
+          <button data-status="booked"   type="button" class="${t.status==="booked"  ?"active booked"  :""}">✅ Booked</button>
+          <button data-status="done"     type="button" class="${t.status==="done"    ?"active done"    :""}">🏁 Done</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="trip-notes" placeholder="Itinerary thoughts, links, who's doing what.">${escapeHTML(t.notes || "")}</textarea>
+      </div>
+
+      <div class="modal-foot">
+        ${isNew
+          ? `<button class="btn btn-ghost" id="trip-cancel" type="button">Cancel</button>`
+          : `<button class="btn btn-ghost" id="trip-delete" type="button" style="color: var(--rose-400);">🗑 Delete this trip</button>`}
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="trip-save" type="button">${isNew ? "Add trip" : "Save"}</button>
+      </div>
+    `;
+    document.getElementById("modal-backdrop").classList.add("active");
+    setTimeout(() => { const el = m.querySelector("#trip-title"); if (el && isNew) el.focus(); }, 50);
+
+    let pickedStatus = t.status;
+    m.querySelectorAll("#trip-status-pills button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        pickedStatus = btn.dataset.status;
+        m.querySelectorAll("#trip-status-pills button").forEach(b => {
+          b.classList.toggle("active", b === btn);
+          b.classList.remove("planning", "booked", "done");
+          if (b === btn) b.classList.add(pickedStatus);
+        });
+      });
+    });
+
+    m.querySelector(".close").addEventListener("click", closeModal);
+    if (isNew) m.querySelector("#trip-cancel").addEventListener("click", closeModal);
+    else m.querySelector("#trip-delete").addEventListener("click", () => {
+      if (!confirm("Delete this trip? This can't be undone.")) return;
+      deleteTrip(t.id);
+      closeModal();
+      showToast("Trip deleted");
+      if (activeView === "trips")     renderTrips();
+      if (activeView === "dashboard") renderDashboard();
+    });
+    m.querySelector("#trip-save").addEventListener("click", () => {
+      const title = m.querySelector("#trip-title").value.trim();
+      if (!title) {
+        showToast("Trip needs a title");
+        m.querySelector("#trip-title").focus();
+        return;
+      }
+      const updated = {
+        id: t.id,
+        title,
+        icon: m.querySelector("#trip-icon").value.trim() || "🗓️",
+        owner: m.querySelector("#trip-owner").value,
+        targetDate: m.querySelector("#trip-date").value,
+        status: pickedStatus,
+        notes: m.querySelector("#trip-notes").value.trim()
+      };
+      upsertTrip(updated);
+      closeModal();
+      showToast(isNew ? "Trip added ✨" : "Trip saved");
+      if (activeView === "trips")     renderTrips();
       if (activeView === "dashboard") renderDashboard();
     });
   }
@@ -785,6 +1030,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     document.getElementById("dash-mike-year").textContent  = Math.round(time.mike  * 52).toLocaleString();
     document.getElementById("dash-asher-year").textContent = Math.round(time.asher * 52).toLocaleString();
 
+    // Coming up — next active trips
+    renderUpcomingTrips();
+
     // Suits
     document.getElementById("dash-suits").innerHTML = renderSuitStack(cards);
 
@@ -807,6 +1055,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     const payload = {
       cards: state.cards,
       customCards: state.customCards || [],
+      trips: getTrips(),
       note: state.note,
       walkIndex: 0,
       lastSaved: state.lastSaved
@@ -818,7 +1067,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   function exportJSON() {
-    const blob = new Blob([JSON.stringify({ cards: state.cards, customCards: state.customCards || [], note: state.note }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ cards: state.cards, customCards: state.customCards || [], trips: getTrips(), note: state.note }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `fair-play-jess-${new Date().toISOString().slice(0,10)}.json`;
@@ -830,11 +1079,13 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       const data = JSON.parse(text);
       if (data.cards) state.cards = data.cards;
       if (Array.isArray(data.customCards)) state.customCards = data.customCards;
+      if (Array.isArray(data.trips)) state.trips = data.trips;
       if (data.note)  state.note  = data.note;
       saveState();
       showToast("Plan loaded ✨");
       renderCover();
       if (activeView === "deck")      renderDeck();
+      if (activeView === "trips")     renderTrips();
       if (activeView === "dashboard") renderDashboard();
     } catch (e) {
       showToast("Couldn't read that file");
@@ -842,9 +1093,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   function resetAll() {
-    if (!confirm("Reset all cards AND note to Mike's original pre-fill? Your discussion edits and any cards you've added will be lost.")) return;
+    if (!confirm("Reset all cards AND note to Mike's original pre-fill? Your discussion edits, any cards you've added, and any trip edits will be lost.")) return;
     state.cards = {};
     state.customCards = [];
+    state.trips = null; // fall back to DEFAULT_TRIPS
     state.walkIndex = 0;
     state.note = DEFAULT_NOTE;
     saveState();
@@ -852,6 +1104,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     showToast("Reset to pre-fill");
     if (activeView === "deck")      renderDeck();
     if (activeView === "walk")      renderWalk();
+    if (activeView === "trips")     renderTrips();
     if (activeView === "dashboard") renderDashboard();
   }
 
@@ -907,6 +1160,12 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     // Add-card button (deck view)
     const addBtn = document.getElementById("add-card-btn");
     if (addBtn) addBtn.addEventListener("click", openAddCardModal);
+
+    // Add-trip button (trips view)
+    const addTripBtn = document.getElementById("add-trip-btn");
+    if (addTripBtn) addTripBtn.addEventListener("click", () => openTripModal());
+    const dashTripsLink = document.getElementById("dash-trips-link");
+    if (dashTripsLink) dashTripsLink.addEventListener("click", e => { e.preventDefault(); setView("trips"); });
 
     // Walk
     document.getElementById("walk-prev").addEventListener("click", walkPrev);
