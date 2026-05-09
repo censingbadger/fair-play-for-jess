@@ -323,6 +323,7 @@ main {
   font-size: clamp(2.5rem, 6vw, 4.25rem);
   font-weight: 400;
   font-style: italic;
+  font-feature-settings: normal;
   margin-bottom: 1rem;
   color: var(--ink-900);
 }
