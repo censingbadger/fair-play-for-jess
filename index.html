@@ -300,6 +300,8 @@
       <button data-filter="mike" type="button">Mike</button>
       <button data-filter="split" type="button">Split</button>
     </div>
+    <div style="flex: 1"></div>
+    <button class="btn btn-gold" id="add-card-btn" type="button">＋ Add card</button>
   </div>
 
   <div id="deck-grid"></div>
@@ -509,6 +511,7 @@
         const ref = doc(db, "families", familyCode);
         await setDoc(ref, {
           cards: stateObj.cards || {},
+          customCards: stateObj.customCards || [],
           note:  stateObj.note  || "",
           clientId,
           updatedAt: serverTimestamp()

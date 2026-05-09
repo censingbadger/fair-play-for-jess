@@ -34,6 +34,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   // ---------- STATE ----------
   const initialState = {
     cards: {},          // overrides keyed by card id
+    customCards: [],    // user-added cards (full card objects), id starts with "custom-"
     note: DEFAULT_NOTE,
     walkIndex: 0,
     deckFilter: "all",  // all | discuss | open | jess | mike | split
@@ -103,6 +104,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     applyingRemote = true;
     try {
       if (remote.cards) state.cards = remote.cards;
+      if (Array.isArray(remote.customCards)) state.customCards = remote.customCards;
       if (typeof remote.note === "string" && remote.note.length > 0) {
         state.note = remote.note;
       }
@@ -121,8 +123,16 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   // Merge a default card with the current state override.
+  function isCustomCard(id) {
+    return typeof id === "string" && id.indexOf("custom-") === 0;
+  }
+  function getCardDef(id) {
+    return window.CARDS.find(c => c.id === id)
+        || (state.customCards || []).find(c => c.id === id)
+        || null;
+  }
   function getCard(id) {
-    const def = window.CARDS.find(c => c.id === id);
+    const def = getCardDef(id);
     if (!def) return null;
     const override = state.cards[id] || {};
     return Object.assign({}, def, override, {
@@ -131,7 +141,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   function allCards() {
-    return window.CARDS.map(c => getCard(c.id));
+    const ids = window.CARDS.map(c => c.id)
+      .concat((state.customCards || []).map(c => c.id));
+    return ids.map(id => getCard(id)).filter(Boolean);
   }
 
   function updateCard(id, patch) {
@@ -140,6 +152,31 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (patch.cpe) {
       state.cards[id].cpe = Object.assign({}, existing.cpe || {}, patch.cpe);
     }
+    saveState();
+  }
+
+  function addCustomCard(data) {
+    const id = "custom-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+    const card = {
+      id,
+      suit: data.suit,
+      title: data.title,
+      icon: data.icon || "🪄",
+      description: data.description || "",
+      cpe: data.cpe,
+      weeklyHours: data.weeklyHours || 0,
+      status: data.status || "discuss",
+      discussionPrompt: "",
+      minimumStandard: data.minimumStandard || ""
+    };
+    state.customCards = (state.customCards || []).concat([card]);
+    saveState();
+    return id;
+  }
+
+  function deleteCustomCard(id) {
+    state.customCards = (state.customCards || []).filter(c => c.id !== id);
+    delete state.cards[id];
     saveState();
   }
 
@@ -474,7 +511,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       </div>
 
       <div class="modal-foot">
-        <button class="btn btn-ghost" id="modal-reset">Reset to Mike's pre-fill</button>
+        ${isCustomCard(id)
+          ? `<button class="btn btn-ghost" id="modal-delete" style="color: var(--rose-400);">🗑 Delete this card</button>`
+          : `<button class="btn btn-ghost" id="modal-reset">Reset to Mike's pre-fill</button>`}
         <div class="spacer"></div>
         <button class="btn btn-primary" id="modal-done">Done</button>
       </div>
@@ -508,15 +547,146 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         });
       });
     });
-    m.querySelector("#modal-reset").addEventListener("click", () => {
-      delete state.cards[id];
-      saveState();
-      openCard(id); // re-render
-    });
+    if (isCustomCard(id)) {
+      m.querySelector("#modal-delete").addEventListener("click", () => {
+        if (!confirm("Delete this card? This can't be undone.")) return;
+        deleteCustomCard(id);
+        closeModal();
+        showToast("Card deleted");
+        if (activeView === "deck")      renderDeck();
+        if (activeView === "walk")      { state.walkIndex = 0; saveState(); renderWalk(); }
+        if (activeView === "snapshot")  renderSnapshot();
+        if (activeView === "dashboard") renderDashboard();
+      });
+    } else {
+      m.querySelector("#modal-reset").addEventListener("click", () => {
+        delete state.cards[id];
+        saveState();
+        openCard(id); // re-render
+      });
+    }
     m.querySelector("#modal-done").addEventListener("click", () => {
       closeModal();
       if (activeView === "deck")      renderDeck();
       if (activeView === "walk")      renderWalk();
+      if (activeView === "snapshot")  renderSnapshot();
+      if (activeView === "dashboard") renderDashboard();
+    });
+  }
+
+  // ---------- MODAL: ADD CARD ----------
+  function openAddCardModal() {
+    const m = document.getElementById("modal");
+    const suitOptions = Object.values(window.SUITS)
+      .map(s => `<option value="${s.id}">${s.emoji} ${escapeHTML(s.name)}</option>`).join("");
+    m.innerHTML = `
+      <button class="close" aria-label="Close" type="button">×</button>
+      <h2>＋ Add a new card</h2>
+      <div class="desc">Anything we missed. Either of us can add cards anytime — they'll sync to both devices.</div>
+
+      <div class="field">
+        <label>Title <span style="color: var(--rose-400)">*</span></label>
+        <input type="text" id="add-title" placeholder="e.g. Plant care" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label>Category (suit)</label>
+        <select id="add-suit">${suitOptions}</select>
+      </div>
+
+      <div class="field">
+        <label>Icon (emoji)</label>
+        <input type="text" id="add-icon" placeholder="🪄" maxlength="4" style="width: 6rem;" />
+      </div>
+
+      <div class="field">
+        <label>Description</label>
+        <textarea id="add-desc" placeholder="What this card covers in a sentence."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Who owns Conception · Planning · Execution?</label>
+        <div class="cpe-row">
+          ${["C","P","E"].map(k => `
+            <div class="cpe-pick">
+              <div class="lbl"><span class="letter">${k}</span>${k === "C" ? "Notice" : k === "P" ? "Plan" : "Do"}</div>
+              <select data-add-cpe="${k}">
+                <option value="open" selected>❓ Open</option>
+                <option value="jess">🐧 Jess</option>
+                <option value="mike">🐱 Mike</option>
+                <option value="split">🤝 Split</option>
+              </select>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Estimated hours per week</label>
+        <input type="number" step="0.25" min="0" id="add-hours" value="0" />
+      </div>
+
+      <div class="field">
+        <label>Minimum standard of care</label>
+        <textarea id="add-msc" placeholder="What 'good enough' looks like."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <div class="status-pills" id="add-status-pills">
+          <button data-status="agreed" type="button">✅ We agree</button>
+          <button data-status="discuss" type="button" class="active discuss">💬 Let's discuss</button>
+          <button data-status="open" type="button">❓ Still open</button>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="add-cancel" type="button">Cancel</button>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="add-save" type="button">Add card</button>
+      </div>
+    `;
+    document.getElementById("modal-backdrop").classList.add("active");
+    setTimeout(() => { const el = m.querySelector("#add-title"); if (el) el.focus(); }, 50);
+
+    let pickedStatus = "discuss";
+    m.querySelectorAll("#add-status-pills button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        pickedStatus = btn.dataset.status;
+        m.querySelectorAll("#add-status-pills button").forEach(b => {
+          b.classList.toggle("active", b === btn);
+          b.classList.remove("agreed", "discuss", "open");
+          if (b === btn) b.classList.add(pickedStatus);
+        });
+      });
+    });
+
+    m.querySelector(".close").addEventListener("click", closeModal);
+    m.querySelector("#add-cancel").addEventListener("click", closeModal);
+    m.querySelector("#add-save").addEventListener("click", () => {
+      const title = m.querySelector("#add-title").value.trim();
+      if (!title) {
+        showToast("Card needs a title");
+        m.querySelector("#add-title").focus();
+        return;
+      }
+      const cpe = {};
+      ["C","P","E"].forEach(k => {
+        cpe[k] = m.querySelector(`[data-add-cpe="${k}"]`).value;
+      });
+      addCustomCard({
+        title,
+        suit: m.querySelector("#add-suit").value,
+        icon: m.querySelector("#add-icon").value.trim() || "🪄",
+        description: m.querySelector("#add-desc").value.trim(),
+        cpe,
+        weeklyHours: parseFloat(m.querySelector("#add-hours").value) || 0,
+        minimumStandard: m.querySelector("#add-msc").value.trim(),
+        status: pickedStatus
+      });
+      closeModal();
+      showToast("Card added ✨");
+      if (activeView === "deck")      renderDeck();
       if (activeView === "snapshot")  renderSnapshot();
       if (activeView === "dashboard") renderDashboard();
     });
@@ -646,6 +816,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   function shareLink() {
     const payload = {
       cards: state.cards,
+      customCards: state.customCards || [],
       note: state.note,
       walkIndex: 0,
       lastSaved: state.lastSaved
@@ -657,7 +828,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   function exportJSON() {
-    const blob = new Blob([JSON.stringify({ cards: state.cards, note: state.note }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ cards: state.cards, customCards: state.customCards || [], note: state.note }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `fair-play-jess-${new Date().toISOString().slice(0,10)}.json`;
@@ -668,6 +839,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     try {
       const data = JSON.parse(text);
       if (data.cards) state.cards = data.cards;
+      if (Array.isArray(data.customCards)) state.customCards = data.customCards;
       if (data.note)  state.note  = data.note;
       saveState();
       showToast("Plan loaded ✨");
@@ -681,8 +853,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   function resetAll() {
-    if (!confirm("Reset all cards AND note to Mike's original pre-fill? Your discussion edits will be lost.")) return;
+    if (!confirm("Reset all cards AND note to Mike's original pre-fill? Your discussion edits and any cards you've added will be lost.")) return;
     state.cards = {};
+    state.customCards = [];
     state.walkIndex = 0;
     state.note = DEFAULT_NOTE;
     saveState();
@@ -741,6 +914,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         renderDeck();
       });
     });
+
+    // Add-card button (deck view)
+    const addBtn = document.getElementById("add-card-btn");
+    if (addBtn) addBtn.addEventListener("click", openAddCardModal);
 
     // Walk
     document.getElementById("walk-prev").addEventListener("click", walkPrev);

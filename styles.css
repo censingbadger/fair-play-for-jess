@@ -807,7 +807,7 @@ main {
   margin-bottom: 0.5rem;
   color: var(--ink-700);
 }
-.field input, .field textarea {
+.field input, .field textarea, .field select {
   width: 100%;
   padding: 0.7rem 0.85rem;
   border-radius: 10px;
@@ -818,7 +818,7 @@ main {
   color: var(--ink-900);
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
-.field input:focus, .field textarea:focus {
+.field input:focus, .field textarea:focus, .field select:focus {
   outline: 0;
   border-color: var(--peach-400);
   box-shadow: 0 0 0 3px rgba(250, 184, 144, 0.25);
