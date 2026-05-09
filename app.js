@@ -181,14 +181,15 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
 
   // ---------- COMPUTE ----------
   function timeSplit(card) {
-    // Returns { jess, mike, open } — hours per week, fractional.
+    // Returns { jess, mike, asher, open } — hours per week, fractional.
     const h = card.weeklyHours || 0;
-    const out = { jess: 0, mike: 0, open: 0 };
+    const out = { jess: 0, mike: 0, asher: 0, open: 0 };
     ["C", "P", "E"].forEach(k => {
       const owner = card.cpe[k];
-      const share = (h / 3); // simple: each CPE leg owns 1/3 of execution time
-      if (owner === "jess") out.jess += share;
-      else if (owner === "mike") out.mike += share;
+      const share = (h / 3);
+      if (owner === "jess")       out.jess  += share;
+      else if (owner === "mike")  out.mike  += share;
+      else if (owner === "asher") out.asher += share;
       else if (owner === "split") { out.jess += share / 2; out.mike += share / 2; }
       else out.open += share;
     });
@@ -196,13 +197,14 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   function mentalLoadSplit(card) {
-    // Returns { jess, mike, open } — weighted units. Sum across cards is meaningful.
+    // Returns { jess, mike, asher, open } — weighted units. Sum across cards is meaningful.
     const W = window.WEIGHTS;
-    const out = { jess: 0, mike: 0, open: 0 };
+    const out = { jess: 0, mike: 0, asher: 0, open: 0 };
     [["C", W.C], ["P", W.P], ["E", W.E]].forEach(([k, w]) => {
       const owner = card.cpe[k];
-      if (owner === "jess") out.jess += w;
-      else if (owner === "mike") out.mike += w;
+      if (owner === "jess")       out.jess  += w;
+      else if (owner === "mike")  out.mike  += w;
+      else if (owner === "asher") out.asher += w;
       else if (owner === "split") { out.jess += w / 2; out.mike += w / 2; }
       else out.open += w;
     });
@@ -210,13 +212,13 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   function totals(cards) {
-    const time = { jess: 0, mike: 0, open: 0 };
-    const load = { jess: 0, mike: 0, open: 0 };
+    const time = { jess: 0, mike: 0, asher: 0, open: 0 };
+    const load = { jess: 0, mike: 0, asher: 0, open: 0 };
     cards.forEach(c => {
       const t = timeSplit(c);
-      time.jess += t.jess; time.mike += t.mike; time.open += t.open;
+      time.jess += t.jess; time.mike += t.mike; time.asher += t.asher; time.open += t.open;
       const l = mentalLoadSplit(c);
-      load.jess += l.jess; load.mike += l.mike; load.open += l.open;
+      load.jess += l.jess; load.mike += l.mike; load.asher += l.asher; load.open += l.open;
     });
     return { time, load };
   }
@@ -287,7 +289,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   // Renders an <ol> of the top-N cards by mental-load weight to `who`
-  // ("jess" | "mike"). Returns innerHTML for the <ol>.
+  // ("jess" | "mike" | "asher"). Returns innerHTML for the <ol>.
   function renderTopList(cards, who) {
     const ranked = cards
       .map(c => ({ c, l: mentalLoadSplit(c) }))
@@ -303,12 +305,14 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   }
 
   // Renders the *inner* segments of a split bar — caller provides the wrapper.
-  function renderSplitBarInner({ jess, mike, split, open }) {
+  function renderSplitBarInner({ jess, mike, asher, split, open }) {
+    asher = asher || 0;
     split = split || 0;
-    open = open || 0;
+    open  = open  || 0;
     const segs = [];
     if (jess  > 0) segs.push(`<div class="seg jess"  style="width:${jess}%">${jess  > 8 ? jess  + "%" : ""}</div>`);
     if (mike  > 0) segs.push(`<div class="seg mike"  style="width:${mike}%">${mike  > 8 ? mike  + "%" : ""}</div>`);
+    if (asher > 0) segs.push(`<div class="seg asher" style="width:${asher}%">${asher > 8 ? asher + "%" : ""}</div>`);
     if (split > 0) segs.push(`<div class="seg split" style="width:${split}%">${split > 8 ? split + "%" : ""}</div>`);
     if (open  > 0) segs.push(`<div class="seg open"  style="width:${open}%">${open  > 8 ? open  + "%" : ""}</div>`);
     return segs.join("");
@@ -318,22 +322,23 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     return `<div class="split-bar thick">${renderSplitBarInner(parts)}</div>`;
   }
 
-  // Renders the per-suit stack used on Snapshot + Dashboard.
+  // Renders the per-suit stack used on Dashboard.
   function renderSuitStack(cards) {
     let html = "";
     Object.values(window.SUITS).forEach(suit => {
       const inSuit = cards.filter(c => c.suit === suit.id);
       if (inSuit.length === 0) return;
       const t = totals(inSuit);
-      const sum = t.load.jess + t.load.mike + t.load.open;
-      const totalHours = (t.time.jess + t.time.mike + t.time.open).toFixed(1);
+      const sum = t.load.jess + t.load.mike + t.load.asher + t.load.open;
+      const totalHours = (t.time.jess + t.time.mike + t.time.asher + t.time.open).toFixed(1);
       html += `
         <div class="suit-row">
           <div class="label"><span class="emoji">${suit.emoji}</span>${suit.name}</div>
           <div class="split-bar">${renderSplitBarInner({
-            jess: pct(t.load.jess, sum),
-            mike: pct(t.load.mike, sum),
-            open: pct(t.load.open, sum)
+            jess:  pct(t.load.jess,  sum),
+            mike:  pct(t.load.mike,  sum),
+            asher: pct(t.load.asher, sum),
+            open:  pct(t.load.open,  sum)
           })}</div>
           <div class="total">${totalHours}h/wk</div>
         </div>
@@ -377,13 +382,14 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (filter === "open")    return c.status === "open";
     if (filter === "jess")    return primaryOwner(c) === "jess";
     if (filter === "mike")    return primaryOwner(c) === "mike";
+    if (filter === "asher")   return primaryOwner(c) === "asher";
     if (filter === "split")   return primaryOwner(c) === "split";
     return true;
   }
 
   function primaryOwner(c) {
     // Returns the dominant owner across CPE for badge purposes.
-    const counts = { jess: 0, mike: 0, split: 0, open: 0 };
+    const counts = { jess: 0, mike: 0, asher: 0, split: 0, open: 0 };
     ["C","P","E"].forEach(k => { counts[c.cpe[k]] = (counts[c.cpe[k]] || 0) + 1; });
     let best = "open", n = -1;
     Object.entries(counts).forEach(([k, v]) => { if (v > n) { best = k; n = v; } });
@@ -451,6 +457,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
               <select data-cpe="${k}">
                 <option value="jess"  ${c.cpe[k]==="jess"?"selected":""}>🐧 Jess</option>
                 <option value="mike"  ${c.cpe[k]==="mike"?"selected":""}>🐱 Mike</option>
+                <option value="asher" ${c.cpe[k]==="asher"?"selected":""}>⚾ Asher</option>
                 <option value="split" ${c.cpe[k]==="split"?"selected":""}>🤝 Split</option>
                 <option value="open"  ${c.cpe[k]==="open"?"selected":""}>❓ Open</option>
               </select>
@@ -582,6 +589,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
                 <option value="open" selected>❓ Open</option>
                 <option value="jess">🐧 Jess</option>
                 <option value="mike">🐱 Mike</option>
+                <option value="asher">⚾ Asher</option>
                 <option value="split">🤝 Split</option>
               </select>
             </div>
@@ -687,7 +695,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     const owner = primaryOwner(c);
     const ownerInfo = window.PEOPLE[owner];
     const t = mentalLoadSplit(c);
-    const loadTotal = t.jess + t.mike + t.open;
+    const loadTotal = t.jess + t.mike + t.asher + t.open;
     const suit = window.SUITS[c.suit];
 
     wrap.innerHTML = `
@@ -702,9 +710,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         <div class="load-block">
           <span class="lbl">Mental load on this card</span>
           ${renderSplitBar({
-            jess: pct(t.jess, loadTotal),
-            mike: pct(t.mike, loadTotal),
-            open: pct(t.open, loadTotal)
+            jess:  pct(t.jess,  loadTotal),
+            mike:  pct(t.mike,  loadTotal),
+            asher: pct(t.asher, loadTotal),
+            open:  pct(t.open,  loadTotal)
           })}
         </div>
         ${c.discussionPrompt ? `
@@ -752,28 +761,38 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     const cards = allCards();
     const { time, load } = totals(cards);
 
-    document.getElementById("dash-jess-hours").textContent = time.jess.toFixed(1);
-    document.getElementById("dash-mike-hours").textContent = time.mike.toFixed(1);
+    document.getElementById("dash-jess-hours").textContent  = time.jess.toFixed(1);
+    document.getElementById("dash-mike-hours").textContent  = time.mike.toFixed(1);
+    document.getElementById("dash-asher-hours").textContent = time.asher.toFixed(1);
 
-    const tT = time.jess + time.mike + time.open;
+    const tT = time.jess + time.mike + time.asher + time.open;
     document.getElementById("dash-time-bar").innerHTML = renderSplitBarInner({
-      jess: pct(time.jess, tT), mike: pct(time.mike, tT), open: pct(time.open, tT)
+      jess:  pct(time.jess,  tT),
+      mike:  pct(time.mike,  tT),
+      asher: pct(time.asher, tT),
+      open:  pct(time.open,  tT)
     });
-    const lT = load.jess + load.mike + load.open;
+    const lT = load.jess + load.mike + load.asher + load.open;
     document.getElementById("dash-load-bar").innerHTML = renderSplitBarInner({
-      jess: pct(load.jess, lT), mike: pct(load.mike, lT), open: pct(load.open, lT)
+      jess:  pct(load.jess,  lT),
+      mike:  pct(load.mike,  lT),
+      asher: pct(load.asher, lT),
+      open:  pct(load.open,  lT)
     });
 
     // Yearly numbers
-    document.getElementById("dash-jess-year").textContent = Math.round(time.jess * 52).toLocaleString();
-    document.getElementById("dash-mike-year").textContent = Math.round(time.mike * 52).toLocaleString();
+    document.getElementById("dash-jess-year").textContent  = Math.round(time.jess  * 52).toLocaleString();
+    document.getElementById("dash-mike-year").textContent  = Math.round(time.mike  * 52).toLocaleString();
+    document.getElementById("dash-asher-year").textContent = Math.round(time.asher * 52).toLocaleString();
 
     // Suits
     document.getElementById("dash-suits").innerHTML = renderSuitStack(cards);
 
     // Top 5 carried by each of us
-    document.getElementById("dash-top-jess").innerHTML = renderTopList(cards, "jess");
-    document.getElementById("dash-top-mike").innerHTML = renderTopList(cards, "mike");
+    document.getElementById("dash-top-jess").innerHTML  = renderTopList(cards, "jess");
+    document.getElementById("dash-top-mike").innerHTML  = renderTopList(cards, "mike");
+    const asherList = document.getElementById("dash-top-asher");
+    if (asherList) asherList.innerHTML = renderTopList(cards, "asher");
 
     // Status counts
     const counts = { agreed: 0, discuss: 0, open: 0 };
