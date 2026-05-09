@@ -124,23 +124,25 @@ p  { margin: 0 0 1rem; }
 .app-header .inner {
   max-width: var(--maxw);
   margin: 0 auto;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 1.1rem;
+  font-size: 1rem;
   letter-spacing: -0.01em;
   flex-shrink: 0;
   color: var(--ink-900);
   text-decoration: none;
 }
+.brand .brand-text { white-space: nowrap; }
 .brand .heart { color: var(--rose-400); }
 .brand-icon {
   width: 28px; height: 28px;
@@ -160,20 +162,48 @@ p  { margin: 0 0 1rem; }
   scrollbar-width: none;
   flex-shrink: 1;
   min-width: 0;
+  -webkit-overflow-scrolling: touch;
 }
 .nav-tabs::-webkit-scrollbar { display: none; }
 .nav-tabs button {
   background: transparent;
   border: 0;
-  padding: 0.5rem 0.875rem;
+  padding: 0.45rem 0.8rem;
   border-radius: var(--r-pill);
   font: inherit;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--ink-500);
   cursor: pointer;
   white-space: nowrap;
   transition: color 150ms ease, background 150ms ease;
+}
+
+/* Mobile: brand + sync pill on row 1, tabs full-width on row 2 */
+@media (max-width: 760px) {
+  .app-header .inner {
+    padding: 0.65rem 1rem;
+    gap: 0.5rem;
+  }
+  .brand { font-size: 0.95rem; }
+  .nav-tabs {
+    order: 3;
+    width: 100%;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    padding: 0 0.25rem 0.15rem;
+    border-top: 1px solid var(--line);
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
+  }
+  .nav-tabs button {
+    font-size: 0.82rem;
+    padding: 0.4rem 0.7rem;
+  }
+  .sync-pill { margin-left: auto; }
+}
+@media (max-width: 380px) {
+  .brand .brand-text { display: none; }
 }
 .nav-tabs button:hover {
   color: var(--ink-900);
