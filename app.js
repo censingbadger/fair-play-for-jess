@@ -306,8 +306,8 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     saveState();
   }
 
-  // Tiny ICS parser. Handles VEVENT blocks: SUMMARY, LOCATION, DTSTART, DTEND.
-  // Skips RRULE (recurring) — those won't show. Good enough for most weekly meetings.
+  // Tiny ICS parser. Handles VEVENT blocks: SUMMARY, LOCATION, DTSTART, DTEND, RRULE.
+  // Recurring events are kept; thisWeekEvents() expands them into instances.
   function parseIcs(text) {
     if (!text) return [];
     const unfolded = text.replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "");
@@ -318,7 +318,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       const line = raw.trim();
       if (line === "BEGIN:VEVENT") { cur = {}; continue; }
       if (line === "END:VEVENT") {
-        if (cur && cur.summary && cur.start && !cur.rrule) events.push(cur);
+        if (cur && cur.summary && cur.start) events.push(cur);
         cur = null;
         continue;
       }
@@ -336,6 +336,76 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       else if (key === "RRULE")    cur.rrule    = value;
     }
     return events;
+  }
+
+  function parseRrule(rrule) {
+    const out = {};
+    (rrule || "").split(";").forEach(part => {
+      const [k, v] = part.split("=");
+      if (k && v !== undefined) out[k.toUpperCase()] = v;
+    });
+    return out;
+  }
+
+  // Expand a recurring event into individual instances within the [windowStart, windowEnd] window.
+  // Handles DAILY and WEEKLY (with optional BYDAY). Other freqs return an empty list for now.
+  function expandRrule(event, windowStart, windowEnd) {
+    if (!event.rrule || !event.start || !event.start.iso) return [event];
+    const rules = parseRrule(event.rrule);
+    if (!rules.FREQ) return [event];
+
+    const startDate = new Date(event.start.iso);
+    const startMs   = startDate.getTime();
+    const winStart  = windowStart.getTime();
+    const winEnd    = windowEnd.getTime();
+
+    const until = rules.UNTIL ? parseIcsDate(rules.UNTIL) : null;
+    const untilMs = until ? new Date(until.iso).getTime() : Infinity;
+    const count = rules.COUNT ? parseInt(rules.COUNT, 10) : Infinity;
+    const interval = Math.max(1, parseInt(rules.INTERVAL || "1", 10));
+
+    const make = (ms) => Object.assign({}, event, {
+      start: { iso: new Date(ms).toISOString(), allDay: event.start.allDay }
+    });
+
+    const out = [];
+    let occ = 0;
+
+    if (rules.FREQ === "DAILY") {
+      const stepMs = interval * 86400000;
+      let cursor = startMs;
+      while (cursor <= winEnd && occ < count && cursor <= untilMs) {
+        if (cursor >= winStart) out.push(make(cursor));
+        cursor += stepMs;
+        occ++;
+      }
+    } else if (rules.FREQ === "WEEKLY") {
+      const dayMap = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+      const byday = rules.BYDAY
+        ? rules.BYDAY.split(",").map(d => dayMap[d]).filter(d => d !== undefined)
+        : [startDate.getDay()];
+
+      // Anchor at the Sunday of startDate's week
+      const weekAnchor = new Date(startDate);
+      weekAnchor.setHours(startDate.getHours(), startDate.getMinutes(), 0, 0);
+      weekAnchor.setDate(weekAnchor.getDate() - weekAnchor.getDay());
+
+      const stepWeekMs = interval * 7 * 86400000;
+      let weekMs = weekAnchor.getTime();
+      while (weekMs <= winEnd && occ < count) {
+        for (const day of byday) {
+          const inst = weekMs + day * 86400000;
+          if (inst >= startMs && inst >= winStart && inst <= winEnd && inst <= untilMs) {
+            out.push(make(inst));
+            occ++;
+            if (occ >= count) break;
+          }
+        }
+        weekMs += stepWeekMs;
+      }
+    }
+    // MONTHLY / YEARLY — skipped for v1
+    return out;
   }
   function decodeIcsText(s) {
     return s.replace(/\\n/g, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
@@ -356,10 +426,18 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
 
   async function fetchIcs(url) {
     if (!url) return [];
+    const fullUrl = ICS_PROXY + encodeURIComponent(url);
+    console.log("[ics] fetching", url);
     try {
-      const res = await fetch(ICS_PROXY + encodeURIComponent(url));
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return parseIcs(await res.text());
+      const res = await fetch(fullUrl);
+      if (!res.ok) {
+        console.warn("[ics] HTTP", res.status, "for", url);
+        throw new Error("HTTP " + res.status);
+      }
+      const text = await res.text();
+      const parsed = parseIcs(text);
+      console.log("[ics] parsed", parsed.length, "events from", url, "(text bytes:", text.length, ")");
+      return parsed;
     } catch (e) {
       console.warn("[ics] fetch failed", url, e);
       return [];
@@ -390,12 +468,17 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     ["jess", "mike"].forEach(owner => {
       (cache[owner] || []).forEach(e => {
         if (!e.start || !e.start.iso) return;
-        const t = new Date(e.start.iso).getTime();
-        if (t >= start.getTime() && t < end.getTime()) {
-          out.push(Object.assign({}, e, { owner }));
-        }
+        const instances = e.rrule ? expandRrule(e, start, end) : [e];
+        instances.forEach(inst => {
+          if (!inst.start || !inst.start.iso) return;
+          const t = new Date(inst.start.iso).getTime();
+          if (t >= start.getTime() && t < end.getTime()) {
+            out.push(Object.assign({}, inst, { owner }));
+          }
+        });
       });
     });
+    console.log("[ics] thisWeekEvents", { jessCount: (cache.jess || []).length, mikeCount: (cache.mike || []).length, expanded: out.length });
     return out.sort((a, b) => new Date(a.start.iso) - new Date(b.start.iso));
   }
 
