@@ -23,13 +23,11 @@
   let pushTimer = null;
 
   // ---------- DEFAULT NOTE FROM MIKE (editable in the app) ----------
-  const DEFAULT_NOTE = `Jess —
+  const DEFAULT_NOTE = `Deer —
 
-Happy Mother's Day. You handed me your copy of Fair Play and I haven't read it yet — but I've watched you live it for years. I wanted to give you something better than "thank you for everything you do." I wanted us to sit down together and actually look.
+Happy Mother's Day. I wanted to give you something better than "thank you for everything you do." I wanted us to sit down together and actually look. So I built this. I'm sure I got things wrong, missed things entirely, and underweighted the parts I don't see.
 
-So I built this. I tried to honestly map what I see you carrying. I'm sure I got things wrong, missed things entirely, and underweighted the parts I don't see. That's the point — let's walk through it together. Move whatever you're tired of holding onto me. We'll come back to it whenever it stops fitting.
-
-I love you. Asher does too. And Stripes tolerates us.
+I love you. Asher does too. And Stripes loves us all, and bunlers.
 
 — Mike`;
 
@@ -683,10 +681,12 @@ I love you. Asher does too. And Stripes tolerates us.
   }
 
   function resetAll() {
-    if (!confirm("Reset all cards to Mike's original pre-fill? Your discussion edits will be lost.")) return;
+    if (!confirm("Reset all cards AND note to Mike's original pre-fill? Your discussion edits will be lost.")) return;
     state.cards = {};
     state.walkIndex = 0;
+    state.note = DEFAULT_NOTE;
     saveState();
+    renderCover();
     showToast("Reset to pre-fill");
     if (activeView === "snapshot")  renderSnapshot();
     if (activeView === "deck")      renderDeck();
