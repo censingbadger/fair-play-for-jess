@@ -37,6 +37,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     customCards: [],    // user-added cards (full card objects), id starts with "custom-"
     trips: null,        // null = use DEFAULT_TRIPS; array = user-edited list
     icsUrls: { jess: "", mike: "" }, // Outlook calendar feed URLs
+    calFilters: { include: "", exclude: "" }, // comma-separated keywords (case-insensitive)
     note: DEFAULT_NOTE,
     walkIndex: 0,
     deckFilter: "all",  // all | discuss | open | jess | mike | split
@@ -116,6 +117,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       if (Array.isArray(remote.customCards)) state.customCards = remote.customCards;
       if (Array.isArray(remote.trips)) state.trips = remote.trips;
       if (remote.icsUrls && typeof remote.icsUrls === "object") state.icsUrls = remote.icsUrls;
+      if (remote.calFilters && typeof remote.calFilters === "object") state.calFilters = remote.calFilters;
       if (typeof remote.note === "string" && remote.note.length > 0) {
         state.note = remote.note;
       }
@@ -304,6 +306,35 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   function setIcsUrls(urls) {
     state.icsUrls = { jess: (urls.jess || "").trim(), mike: (urls.mike || "").trim() };
     saveState();
+  }
+
+  function getCalFilters() {
+    return Object.assign({ include: "", exclude: "" }, state.calFilters || {});
+  }
+  function setCalFilters(f) {
+    state.calFilters = { include: (f.include || "").trim(), exclude: (f.exclude || "").trim() };
+    saveState();
+  }
+  function parseFilterList(s) {
+    return (s || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
+  }
+  // Returns { keep: [...], hidden: count } after applying include/exclude rules.
+  function applyCalFilters(events) {
+    const f = getCalFilters();
+    const inc = parseFilterList(f.include);
+    const exc = parseFilterList(f.exclude);
+    if (inc.length === 0 && exc.length === 0) return { keep: events, hidden: 0 };
+    let hidden = 0;
+    const keep = events.filter(e => {
+      const t = (e.summary || "").toLowerCase();
+      const matchInc = inc.length > 0 && inc.some(k => t.includes(k));
+      const matchExc = exc.length > 0 && exc.some(k => t.includes(k));
+      // Always-show wins over always-hide
+      if (matchInc) return true;
+      if (matchExc) { hidden++; return false; }
+      return true;
+    });
+    return { keep, hidden };
   }
 
   // Tiny ICS parser. Handles VEVENT blocks: SUMMARY, LOCATION, DTSTART, DTEND, RRULE.
@@ -495,11 +526,18 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     }
     el.innerHTML = `<div class="upcoming-empty">Loading calendar events…</div>`;
     fetchAllCalendars().then(cache => {
-      const events = thisWeekEvents(cache);
+      const allEvents = thisWeekEvents(cache);
+      const filtered = applyCalFilters(allEvents);
+      const events = filtered.keep;
       if (events.length === 0) {
-        el.innerHTML = `<div class="upcoming-empty">No events in the next 7 days. <button class="btn btn-ghost btn-sm" id="thisweek-refresh" type="button" style="margin-left:0.5rem">↻ Refresh</button></div>`;
+        const reason = allEvents.length > 0
+          ? `All ${allEvents.length} event${allEvents.length === 1 ? "" : "s"} this week were hidden by your filters. <a href="#" id="thisweek-tweak">Adjust filters →</a>`
+          : `No events in the next 7 days.`;
+        el.innerHTML = `<div class="upcoming-empty">${reason} <button class="btn btn-ghost btn-sm" id="thisweek-refresh" type="button" style="margin-left:0.5rem">↻ Refresh</button></div>`;
         const r = el.querySelector("#thisweek-refresh");
         if (r) r.addEventListener("click", () => fetchAllCalendars(true).then(renderThisWeek));
+        const tweak = el.querySelector("#thisweek-tweak");
+        if (tweak) tweak.addEventListener("click", e => { e.preventDefault(); setView("about"); });
         return;
       }
       const today = new Date(); today.setHours(0,0,0,0);
@@ -535,12 +573,18 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
           </div>
         `;
       }).join("");
+      const hiddenNote = filtered.hidden > 0
+        ? `<small>${filtered.hidden} hidden by filter · <a href="#" id="thisweek-tweak">tweak →</a></small>`
+        : "";
       el.innerHTML = daysHtml + `
         <div class="cal-foot">
           <button class="btn btn-ghost btn-sm" id="thisweek-refresh" type="button">↻ Refresh</button>
+          ${hiddenNote}
           <small>Updated ${new Date(cache.fetchedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</small>
         </div>
       `;
+      const tweak = el.querySelector("#thisweek-tweak");
+      if (tweak) tweak.addEventListener("click", e => { e.preventDefault(); setView("about"); });
       const r = el.querySelector("#thisweek-refresh");
       if (r) r.addEventListener("click", () => fetchAllCalendars(true).then(renderThisWeek));
     });
@@ -1467,6 +1511,21 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         await fetchAllCalendars(true);
         if (activeView === "dashboard") renderThisWeek();
         showToast("Calendar events loaded ✨");
+      });
+    }
+
+    // Calendar filter keywords
+    const calIncIn = document.getElementById("cal-include");
+    const calExcIn = document.getElementById("cal-exclude");
+    const calFiltersSave = document.getElementById("cal-filters-save");
+    if (calIncIn && calExcIn && calFiltersSave) {
+      const f = getCalFilters();
+      calIncIn.value = f.include;
+      calExcIn.value = f.exclude;
+      calFiltersSave.addEventListener("click", () => {
+        setCalFilters({ include: calIncIn.value, exclude: calExcIn.value });
+        showToast("Filters saved");
+        if (activeView === "dashboard") renderThisWeek();
       });
     }
 

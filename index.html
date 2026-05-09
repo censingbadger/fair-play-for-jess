@@ -445,6 +445,26 @@
         <button class="btn btn-gold" id="ics-save" type="button">Save & fetch</button>
       </div>
       <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">Privacy note: anyone with the URL can read your calendar. URLs sync via the family code — keep that code private.</p>
+
+      <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--ink-700);">Filter what shows up</h4>
+      <p style="font-size: 0.88rem; color: var(--ink-500);">Most work calendar entries are noise. Use these keyword rules so the "This week's calendar" panel only shows events that need coordination. Comma-separated, case-insensitive substring match.</p>
+
+      <div class="field">
+        <label>✅ Always show (matches override "always hide")</label>
+        <input type="text" id="cal-include" placeholder="Crushers, Asher, school, doctor, dentist, Boone, vacation, parent" autocomplete="off">
+        <div class="hint">Anything matching one of these always appears, even if it'd be hidden by the rule below.</div>
+      </div>
+
+      <div class="field">
+        <label>🚫 Always hide</label>
+        <input type="text" id="cal-exclude" placeholder="Standup, 1:1, Sync, Faculty Meeting, Office Hours, OOO" autocomplete="off">
+        <div class="hint">Anything matching is hidden. Empty = show everything.</div>
+      </div>
+
+      <div class="settings-row">
+        <button class="btn btn-secondary" id="cal-filters-save" type="button">Save filters</button>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">Filters sync to Jess too. The Dashboard will show "X hidden by filter" so you can sanity-check.</p>
     </div>
 
     <div class="about-section">
