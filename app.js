@@ -1557,7 +1557,21 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     const calAllDay  = document.getElementById("cal-allday");
     const calStart   = document.getElementById("cal-start");
     const calEnd     = document.getElementById("cal-end");
+    const calPreset  = document.getElementById("cal-preset");
     const calFiltersSave = document.getElementById("cal-filters-save");
+
+    if (calPreset) {
+      calPreset.addEventListener("click", () => {
+        if (calIncIn)   calIncIn.value   = "school, Asher, Glenwood, crushers, WC, Practice, Tournament, Boat, Zoo, field trip, drive, game, playdate, pick, dinner, parents, party, banquet, award, presentation day";
+        if (calExcIn)   calExcIn.value   = "";
+        if (calStrict)  calStrict.checked = true;
+        if (calWeekend) calWeekend.checked = true;
+        if (calAllDay)  calAllDay.checked = true;
+        if (calStart)   calStart.value = 9;
+        if (calEnd)     calEnd.value   = 16;
+        showToast("Preset loaded — click Save filters to apply");
+      });
+    }
     if (calIncIn && calExcIn && calFiltersSave) {
       const f = getCalFilters();
       calIncIn.value   = f.include;

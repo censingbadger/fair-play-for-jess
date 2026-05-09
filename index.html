@@ -459,13 +459,13 @@
 
       <div class="field">
         <label>✅ Always show keywords <span style="color: var(--ink-500); font-weight: 400;">(comma-separated, case-insensitive)</span></label>
-        <input type="text" id="cal-include" placeholder="Asher, Crushers, school, dentist, drive, game, party, banquet" autocomplete="off">
-        <div class="hint">Matches override every other rule.</div>
+        <textarea id="cal-include" rows="3" style="font-family: var(--font-sans); resize: vertical;" placeholder="Asher, Crushers, school, dentist, drive, game, party, banquet"></textarea>
+        <div class="hint">Matches override every other rule. <button type="button" id="cal-preset" style="margin-left: 0.5rem; background: none; border: 0; color: var(--rose-400); font-weight: 600; font-size: 0.85rem; cursor: pointer; text-decoration: underline; padding: 0;">↪ Use Mike's preset</button></div>
       </div>
 
       <div class="field">
         <label>🚫 Always hide keywords <span style="color: var(--ink-500); font-weight: 400;">(loose mode only)</span></label>
-        <input type="text" id="cal-exclude" placeholder="Standup, 1:1, Sync, OOO" autocomplete="off">
+        <textarea id="cal-exclude" rows="2" style="font-family: var(--font-sans); resize: vertical;" placeholder="Standup, 1:1, Sync, OOO"></textarea>
         <div class="hint">Ignored when strict mode is on.</div>
       </div>
 
