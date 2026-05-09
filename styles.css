@@ -975,6 +975,44 @@ textarea.share-link {
 .about-section ul { padding-left: 1.5rem; color: var(--ink-700); }
 .about-section li { margin-bottom: 0.5rem; }
 
+/* ─── Sync pill (header) ──────────────────────────────────────────────── */
+.sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--r-pill);
+  background: var(--cream-100);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-500);
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.sync-pill .sync-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ink-300);
+  flex-shrink: 0;
+}
+.sync-pill.online     { background: rgba(127, 160, 104, 0.12); color: var(--sage-500); }
+.sync-pill.online     .sync-dot { background: var(--sage-500); animation: pulse 2s ease-in-out infinite; }
+.sync-pill.connecting { background: rgba(212, 160, 74, 0.15); color: var(--gold-600); }
+.sync-pill.connecting .sync-dot { background: var(--gold-500); animation: pulse 1s ease-in-out infinite; }
+.sync-pill.error      { background: rgba(234, 142, 120, 0.15); color: var(--rose-400); }
+.sync-pill.error      .sync-dot { background: var(--rose-400); }
+.sync-pill.offline    { background: rgba(168, 162, 158, 0.18); color: var(--ink-500); }
+.sync-pill.offline    .sync-dot { background: var(--ink-300); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+@media (max-width: 600px) {
+  .sync-pill .sync-text { display: none; }
+  .sync-pill { padding: 0.4rem; }
+}
+
 /* ─── Toast ───────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;

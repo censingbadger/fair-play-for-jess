@@ -4,8 +4,23 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "fairplay-jess-v1";
-  const SHARE_PARAM = "plan";
+  const STORAGE_KEY      = "fairplay-jess-v1";
+  const SHARE_PARAM      = "plan";
+  const FAMILY_CODE_KEY  = "fairplay-jess-family-code";
+  const DEFAULT_FAMILY_CODE = "mike-jess-2026";
+
+  function getFamilyCode() {
+    return (localStorage.getItem(FAMILY_CODE_KEY) || DEFAULT_FAMILY_CODE).trim();
+  }
+  function setFamilyCode(code) {
+    code = (code || "").trim() || DEFAULT_FAMILY_CODE;
+    localStorage.setItem(FAMILY_CODE_KEY, code);
+    return code;
+  }
+
+  // Set true while applying a remote update so saveState() doesn't push it back.
+  let applyingRemote = false;
+  let pushTimer = null;
 
   // ---------- DEFAULT NOTE FROM MIKE (editable in the app) ----------
   const DEFAULT_NOTE = `Jess —
@@ -73,6 +88,37 @@ I love you. Asher does too. And Stripes tolerates us.
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
       console.warn("Failed to persist state", e);
+    }
+    // Push to Firestore (debounced 500 ms). Skip if we're applying a remote update
+    // — otherwise we'd ping-pong forever.
+    if (!applyingRemote && window.fpSync) {
+      if (pushTimer) clearTimeout(pushTimer);
+      pushTimer = setTimeout(() => {
+        window.fpSync.push(state, getFamilyCode());
+        pushTimer = null;
+      }, 500);
+    }
+  }
+
+  // Apply a state coming from Firestore (the other device made an edit).
+  function applyRemoteState(remote, isInitial) {
+    applyingRemote = true;
+    try {
+      if (remote.cards) state.cards = remote.cards;
+      if (typeof remote.note === "string" && remote.note.length > 0) {
+        state.note = remote.note;
+      }
+      // Persist to local storage so refreshes keep the synced view
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+      // Re-render whatever's visible
+      renderCover();
+      if (activeView === "snapshot")  renderSnapshot();
+      if (activeView === "deck")      renderDeck();
+      if (activeView === "walk")      renderWalk();
+      if (activeView === "dashboard") renderDashboard();
+      if (!isInitial) showToast("Updated by Jess ✨");
+    } finally {
+      applyingRemote = false;
     }
   }
 
@@ -730,6 +776,36 @@ I love you. Asher does too. And Stripes tolerates us.
       reader.readAsText(file);
     });
     document.getElementById("reset-btn").addEventListener("click", resetAll);
+
+    // Family code editor
+    const fcInput = document.getElementById("family-code-input");
+    const fcSave  = document.getElementById("family-code-save");
+    if (fcInput && fcSave) {
+      fcInput.value = getFamilyCode();
+      fcSave.addEventListener("click", () => {
+        const newCode = setFamilyCode(fcInput.value);
+        fcInput.value = newCode;
+        showToast(`Family code set: ${newCode}`);
+        // Re-init Firestore subscription on the new code
+        if (window.fpSync) window.fpSync.init(newCode, applyRemoteState);
+      });
+    }
+
+    // Sync — wait for Firebase module to publish window.fpSync
+    function startSync() {
+      if (!window.fpSync) return;
+      const pill = document.getElementById("sync-pill");
+      const txt  = pill ? pill.querySelector(".sync-text") : null;
+      window.fpSync.onStatus(s => {
+        if (!pill) return;
+        pill.className = "sync-pill " + s;
+        const labels = { init: "starting", connecting: "connecting", online: "live", offline: "offline", error: "sync error" };
+        if (txt) txt.textContent = labels[s] || s;
+      });
+      window.fpSync.init(getFamilyCode(), applyRemoteState);
+    }
+    if (window.fpSync) startSync();
+    else window.addEventListener("fp-sync-ready", startSync);
 
     // Default view
     setView("cover");

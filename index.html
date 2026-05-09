@@ -33,6 +33,10 @@
       <button data-view="dashboard">Dashboard</button>
       <button data-view="about">Save & share</button>
     </nav>
+    <span class="sync-pill" id="sync-pill" title="Live sync status">
+      <span class="sync-dot"></span>
+      <span class="sync-text">…</span>
+    </span>
   </div>
 </header>
 
@@ -342,13 +346,23 @@
   <div class="surface elevated" style="padding: 2.5rem;">
     <div class="eyebrow">Plan management</div>
     <h2>Save, share, and what's next</h2>
-    <p class="lead">Everything you change saves automatically to this device. To get the same plan on Jess's phone (or back here later), use one of these.</p>
+    <p class="lead">Edits sync between devices in real time when both you and Jess are using the same family code below.</p>
 
     <div class="about-section">
-      <h3>Share to another device</h3>
-      <p style="font-size: 0.92rem; color: var(--ink-500);">Generates a long URL with your full plan baked in. Send via text, email, or AirDrop. Opening it on the other device loads everything.</p>
+      <h3>Family code (live sync)</h3>
+      <p style="font-size: 0.92rem; color: var(--ink-500);">Both you and Jess must enter the same code. Edits on one device appear on the other within ~1 second. The default below is fine for the two of you.</p>
       <div class="settings-row">
-        <button class="btn btn-gold" id="share-btn" type="button">Copy share link</button>
+        <input type="text" id="family-code-input" class="field-input" placeholder="mike-jess-2026" style="flex: 1; min-width: 220px; padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid var(--line-2); font: inherit; font-size: 0.95rem; background: var(--surface); color: var(--ink-900);">
+        <button class="btn btn-gold" id="family-code-save" type="button">Save & resync</button>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--ink-500); margin-top: 0.5rem;">Tip: text Jess this URL plus the family code so she can join.</p>
+    </div>
+
+    <div class="about-section">
+      <h3>Backup share link</h3>
+      <p style="font-size: 0.92rem; color: var(--ink-500);">Alternative to live sync: generates a URL with your current plan baked in. Useful for snapshots or if sync is unavailable.</p>
+      <div class="settings-row">
+        <button class="btn btn-secondary" id="share-btn" type="button">Copy share link</button>
       </div>
       <textarea class="share-link" id="share-output" placeholder="Click 'Copy share link' to generate" readonly></textarea>
     </div>
@@ -398,6 +412,97 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Firebase live-sync. Loaded as ESM; sets up window.fpSync before app.js runs. -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBV2puz3-hhPeUcEWgJ1GWHVxwgml94tS4",
+    authDomain: "fair-play-for-jess.firebaseapp.com",
+    projectId: "fair-play-for-jess",
+    storageBucket: "fair-play-for-jess.firebasestorage.app",
+    messagingSenderId: "1023402247877",
+    appId: "1:1023402247877:web:28ff2ef658bdd5339792ac"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // Stable per-device id, used to ignore our own write echoes.
+  const CLIENT_KEY = "fairplay-jess-client-id";
+  let clientId = localStorage.getItem(CLIENT_KEY);
+  if (!clientId) {
+    clientId = "c-" + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem(CLIENT_KEY, clientId);
+  }
+
+  let unsubscribe = null;
+  let onRemote = null;
+  let firstSnapshot = true;
+  const statusListeners = new Set();
+  let currentStatus = "init";
+
+  function setStatus(s) {
+    currentStatus = s;
+    statusListeners.forEach(fn => { try { fn(s); } catch (e) {} });
+  }
+
+  window.fpSync = {
+    clientId,
+    onStatus(fn) { statusListeners.add(fn); fn(currentStatus); },
+
+    async init(familyCode, onRemoteChange) {
+      onRemote = onRemoteChange;
+      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+      firstSnapshot = true;
+      setStatus("connecting");
+      try {
+        const ref = doc(db, "families", familyCode);
+        unsubscribe = onSnapshot(ref, (snap) => {
+          setStatus("online");
+          if (!snap.exists()) return;
+          const data = snap.data();
+          // First snapshot always applied (initial sync down).
+          if (firstSnapshot) {
+            firstSnapshot = false;
+            if (onRemote) onRemote(data, /*isInitial=*/true);
+            return;
+          }
+          // After that, ignore our own echoes.
+          if (data.clientId === clientId) return;
+          if (onRemote) onRemote(data, /*isInitial=*/false);
+        }, (err) => {
+          console.error("[fpSync] snapshot error", err);
+          setStatus("error");
+        });
+      } catch (e) {
+        console.error("[fpSync] init failed", e);
+        setStatus("error");
+      }
+    },
+
+    async push(stateObj, familyCode) {
+      try {
+        const ref = doc(db, "families", familyCode);
+        await setDoc(ref, {
+          cards: stateObj.cards || {},
+          note:  stateObj.note  || "",
+          clientId,
+          updatedAt: serverTimestamp()
+        });
+      } catch (e) {
+        console.error("[fpSync] push failed", e);
+        setStatus("error");
+      }
+    }
+  };
+
+  console.log("[fpSync] ready, clientId:", clientId);
+  window.dispatchEvent(new CustomEvent("fp-sync-ready"));
+</script>
 
 <script src="cards.js"></script>
 <script src="app.js"></script>
