@@ -27,10 +27,9 @@
     <nav class="nav-tabs" aria-label="Sections">
       <button data-view="cover">Cover</button>
       <button data-view="primer">How it works</button>
-      <button data-view="snapshot">Snapshot</button>
+      <button data-view="dashboard">Dashboard</button>
       <button data-view="walk">Walk-through</button>
       <button data-view="deck">Deck</button>
-      <button data-view="dashboard">Dashboard</button>
       <button data-view="about">Settings</button>
     </nav>
     <span class="sync-pill" id="sync-pill" title="Live sync status">
@@ -187,76 +186,13 @@
       </div>
     </div>
 
-    <p>The <strong>Snapshot</strong> next shows what I (Mike) think we have today — based on what I see. Some I'm guessing on, some I genuinely don't know. Those are flagged <strong style="color: var(--rose-400)">discuss</strong> or <strong style="color: var(--gold-600)">open</strong>.</p>
+    <p>The <strong>Dashboard</strong> next shows what I (Mike) think we have today — based on what I see. Some I'm guessing on, some I genuinely don't know. Those are flagged <strong style="color: var(--rose-400)">discuss</strong> or <strong style="color: var(--gold-600)">open</strong>.</p>
 
     <p>From there we walk through together. Move what doesn't fit. Reassign. Set the minimum standard so the holder is trusted to do it their way. We don't have to finish today.</p>
 
     <div style="margin-top: 1.5rem;">
-      <button class="btn btn-primary" id="primer-continue" type="button">See the snapshot →</button>
+      <button class="btn btn-primary" id="primer-continue" type="button">See the dashboard →</button>
     </div>
-  </div>
-</section>
-
-<!-- ╔══════════════ SNAPSHOT ══════════════╗ -->
-<section class="view" data-view="snapshot">
-  <div class="section-head">
-    <div class="eyebrow">What I see today</div>
-    <h2>From my pre-fill of the cards</h2>
-    <p class="lead">Tell me where I'm wrong. The hours and load below assume my read is right — they'll move as we walk through.</p>
-  </div>
-
-  <div class="grid-2" style="margin-bottom: 1rem;">
-    <div class="surface">
-      <h3>Hours per week</h3>
-      <div class="stat-block split-row">
-        <div>
-          <span class="num jess" id="snap-jess-hours">—</span>
-          <span class="label"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--penguin);display:inline-block"></span>Jess</span>
-        </div>
-        <div>
-          <span class="num mike" id="snap-mike-hours">—</span>
-          <span class="label"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--kitty);display:inline-block"></span>Mike</span>
-        </div>
-      </div>
-      <div class="split-bar thick" id="snap-time-bar"></div>
-    </div>
-
-    <div class="surface">
-      <h3>Mental load split</h3>
-      <p class="lead" style="font-size: 0.88rem; color: var(--ink-500); margin-bottom: 1rem;">
-        Weighted: Conception 40% · Planning 35% · Execution 25%
-      </p>
-      <div class="split-bar thick" id="snap-load-bar"></div>
-      <div class="split-legend" style="margin-top: 0.75rem;">
-        <span class="item jess"><span class="dot"></span>Jess</span>
-        <span class="item mike"><span class="dot"></span>Mike</span>
-        <span class="item split"><span class="dot"></span>Split</span>
-        <span class="item open"><span class="dot"></span>Open</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="surface" style="margin-bottom: 1rem;">
-    <h3>Mental load by suit</h3>
-    <div class="suit-stack" id="snap-suits" style="margin-top: 1.25rem;"></div>
-  </div>
-
-  <div class="grid-2">
-    <div class="surface">
-      <h3>Top 5 cards Jess carries</h3>
-      <ol id="snap-top-jess" style="margin: 0.5rem 0 0; padding-left: 1.25rem; line-height: 2; font-size: 0.95rem; color: var(--ink-700);"></ol>
-    </div>
-    <div class="surface">
-      <h3>Cards flagged for us</h3>
-      <div style="font-family: var(--font-serif); font-size: 4rem; font-weight: 500; line-height: 1; color: var(--rose-400); margin: 0.5rem 0;">
-        <span id="snap-discuss-count">—</span>
-      </div>
-      <p style="color: var(--ink-500); margin: 0; font-size: 0.92rem;">cards to talk through together. The walk-through groups them by suit so it's manageable.</p>
-    </div>
-  </div>
-
-  <div style="text-align: center; margin-top: 2.5rem;">
-    <button class="btn btn-primary btn-lg" id="snap-walk" type="button">Let's walk through it together →</button>
   </div>
 </section>
 
@@ -363,6 +299,17 @@
     <div class="suit-stack" id="dash-suits" style="margin-top: 1.25rem;"></div>
   </div>
 
+  <div class="grid-2" style="margin-bottom: 1rem;">
+    <div class="surface">
+      <h3>Top 5 cards Jess carries</h3>
+      <ol id="dash-top-jess" class="top-list"></ol>
+    </div>
+    <div class="surface">
+      <h3>Top 5 cards Mike carries</h3>
+      <ol id="dash-top-mike" class="top-list"></ol>
+    </div>
+  </div>
+
   <div class="grid-3">
     <div class="surface">
       <div class="eyebrow" style="color: var(--sage-500); margin-bottom: 0.5rem;">Agreed</div>
@@ -379,6 +326,10 @@
       <div style="font-family: var(--font-serif); font-size: 3rem; font-weight: 500; line-height: 1; color: var(--gold-600);" id="dash-open">—</div>
       <p style="color: var(--ink-500); margin: 0.5rem 0 0; font-size: 0.88rem;">need an owner</p>
     </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 2.5rem;">
+    <button class="btn btn-primary btn-lg" id="dash-walk" type="button">Walk through cards together →</button>
   </div>
 </section>
 

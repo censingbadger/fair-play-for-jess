@@ -1,5 +1,5 @@
 // Fair Play for Jess — app.js
-// Single-file SPA. Renders cover → primer → snapshot → deck/walkthrough → dashboard → about.
+// Single-file SPA. Renders cover → primer → dashboard → walkthrough → deck → settings.
 
 (function () {
   "use strict";
@@ -112,7 +112,6 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
       // Re-render whatever's visible
       renderCover();
-      if (activeView === "snapshot")  renderSnapshot();
       if (activeView === "deck")      renderDeck();
       if (activeView === "walk")      renderWalk();
       if (activeView === "dashboard") renderDashboard();
@@ -239,7 +238,6 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     // Re-render dynamic views on entry.
-    if (name === "snapshot")  renderSnapshot();
     if (name === "deck")      renderDeck();
     if (name === "walk")      renderWalk();
     if (name === "dashboard") renderDashboard();
@@ -288,48 +286,20 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     });
   }
 
-  // ---------- RENDER: SNAPSHOT ----------
-  function renderSnapshot() {
-    const cards = allCards();
-    const { time, load } = totals(cards);
-
-    // Headline numbers
-    document.getElementById("snap-jess-hours").textContent = time.jess.toFixed(1);
-    document.getElementById("snap-mike-hours").textContent = time.mike.toFixed(1);
-
-    // Time split bar
-    const timeTotal = time.jess + time.mike + time.open;
-    document.getElementById("snap-time-bar").innerHTML = renderSplitBarInner({
-      jess: pct(time.jess, timeTotal),
-      mike: pct(time.mike, timeTotal),
-      open: pct(time.open, timeTotal)
-    });
-
-    // Mental load bar
-    const loadTotal = load.jess + load.mike + load.open;
-    document.getElementById("snap-load-bar").innerHTML = renderSplitBarInner({
-      jess: pct(load.jess, loadTotal),
-      mike: pct(load.mike, loadTotal),
-      open: pct(load.open, loadTotal)
-    });
-
-    // Suit stack
-    document.getElementById("snap-suits").innerHTML = renderSuitStack(cards);
-
-    // Top carry
-    const topJess = cards
+  // Renders an <ol> of the top-N cards by mental-load weight to `who`
+  // ("jess" | "mike"). Returns innerHTML for the <ol>.
+  function renderTopList(cards, who) {
+    const ranked = cards
       .map(c => ({ c, l: mentalLoadSplit(c) }))
-      .sort((a, b) => b.l.jess - a.l.jess)
+      .filter(x => x.l[who] > 0)
+      .sort((a, b) => b.l[who] - a.l[who])
       .slice(0, 5);
-    const topBox = document.getElementById("snap-top-jess");
-    topBox.innerHTML = topJess
-      .filter(x => x.l.jess > 0)
+    if (ranked.length === 0) {
+      return `<li class="empty">No cards yet — open ones will land here as we assign them.</li>`;
+    }
+    return ranked
       .map(x => `<li>${x.c.icon} <strong>${escapeHTML(x.c.title)}</strong> <small>(${x.c.weeklyHours}h/wk)</small></li>`)
       .join("");
-
-    // Discussion count
-    const discussCount = cards.filter(c => c.status === "discuss" || c.status === "open").length;
-    document.getElementById("snap-discuss-count").textContent = discussCount;
   }
 
   // Renders the *inner* segments of a split bar — caller provides the wrapper.
@@ -555,7 +525,6 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         showToast("Card deleted");
         if (activeView === "deck")      renderDeck();
         if (activeView === "walk")      { state.walkIndex = 0; saveState(); renderWalk(); }
-        if (activeView === "snapshot")  renderSnapshot();
         if (activeView === "dashboard") renderDashboard();
       });
     } else {
@@ -569,7 +538,6 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       closeModal();
       if (activeView === "deck")      renderDeck();
       if (activeView === "walk")      renderWalk();
-      if (activeView === "snapshot")  renderSnapshot();
       if (activeView === "dashboard") renderDashboard();
     });
   }
@@ -687,7 +655,6 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       closeModal();
       showToast("Card added ✨");
       if (activeView === "deck")      renderDeck();
-      if (activeView === "snapshot")  renderSnapshot();
       if (activeView === "dashboard") renderDashboard();
     });
   }
@@ -804,6 +771,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     // Suits
     document.getElementById("dash-suits").innerHTML = renderSuitStack(cards);
 
+    // Top 5 carried by each of us
+    document.getElementById("dash-top-jess").innerHTML = renderTopList(cards, "jess");
+    document.getElementById("dash-top-mike").innerHTML = renderTopList(cards, "mike");
+
     // Status counts
     const counts = { agreed: 0, discuss: 0, open: 0 };
     cards.forEach(c => counts[c.status]++);
@@ -844,7 +815,6 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       saveState();
       showToast("Plan loaded ✨");
       renderCover();
-      if (activeView === "snapshot")  renderSnapshot();
       if (activeView === "deck")      renderDeck();
       if (activeView === "dashboard") renderDashboard();
     } catch (e) {
@@ -861,7 +831,6 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     saveState();
     renderCover();
     showToast("Reset to pre-fill");
-    if (activeView === "snapshot")  renderSnapshot();
     if (activeView === "deck")      renderDeck();
     if (activeView === "walk")      renderWalk();
     if (activeView === "dashboard") renderDashboard();
@@ -899,8 +868,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     // Cover CTAs
     document.getElementById("cover-begin").addEventListener("click", () => setView("primer"));
     document.getElementById("edit-note-btn").addEventListener("click", openNoteEditor);
-    document.getElementById("primer-continue").addEventListener("click", () => setView("snapshot"));
-    document.getElementById("snap-walk").addEventListener("click", () => {
+    document.getElementById("primer-continue").addEventListener("click", () => setView("dashboard"));
+    const dashWalk = document.getElementById("dash-walk");
+    if (dashWalk) dashWalk.addEventListener("click", () => {
       state.walkIndex = 0;
       saveState();
       setView("walk");

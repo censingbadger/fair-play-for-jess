@@ -1005,6 +1005,24 @@ textarea.share-link {
 .about-section ul { padding-left: 1.5rem; color: var(--ink-700); }
 .about-section li { margin-bottom: 0.5rem; }
 
+/* ─── Top-N lists (Dashboard) ─────────────────────────────────────────── */
+.top-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  line-height: 2;
+  font-size: 0.95rem;
+  color: var(--ink-700);
+}
+.top-list li small { color: var(--ink-500); font-weight: 500; }
+.top-list .empty {
+  list-style: none;
+  margin-left: -1.25rem;
+  font-style: italic;
+  color: var(--ink-500);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 /* ─── Sync pill (header) ──────────────────────────────────────────────── */
 .sync-pill {
   display: inline-flex;
