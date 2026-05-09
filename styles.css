@@ -323,7 +323,10 @@ main {
   font-weight: 400;
   font-style: italic;
   margin-bottom: 1rem;
-  color: var(--ink-900);
+  background: linear-gradient(135deg, var(--ink-900) 30%, var(--rose-400) 70%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .hero .sub {
   font-size: 1.1rem;
