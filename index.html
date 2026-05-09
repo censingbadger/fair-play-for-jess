@@ -255,6 +255,7 @@
       <button data-filter="open" type="button">Open</button>
       <button data-filter="jess" type="button">Jess</button>
       <button data-filter="mike" type="button">Mike</button>
+      <button data-filter="asher" type="button">Asher</button>
       <button data-filter="split" type="button">Split</button>
     </div>
     <div style="flex: 1"></div>
@@ -275,7 +276,7 @@
   <div class="grid-2" style="margin-bottom: 1rem;">
     <div class="surface elevated">
       <h3>Weekly hours</h3>
-      <div class="stat-block split-row">
+      <div class="stat-block split-row three">
         <div>
           <span class="num jess" id="dash-jess-hours">—</span>
           <span class="label"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--penguin);display:inline-block"></span>Jess</span>
@@ -284,13 +285,17 @@
           <span class="num mike" id="dash-mike-hours">—</span>
           <span class="label"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--kitty);display:inline-block"></span>Mike</span>
         </div>
+        <div>
+          <span class="num asher" id="dash-asher-hours">—</span>
+          <span class="label"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--asher);display:inline-block"></span>Asher</span>
+        </div>
       </div>
       <div class="split-bar thick" id="dash-time-bar"></div>
     </div>
 
     <div class="surface elevated">
       <h3>Yearly hours</h3>
-      <div class="stat-block split-row">
+      <div class="stat-block split-row three">
         <div>
           <span class="num jess" id="dash-jess-year">—</span>
           <span class="label">Jess / year</span>
@@ -298,6 +303,10 @@
         <div>
           <span class="num mike" id="dash-mike-year">—</span>
           <span class="label">Mike / year</span>
+        </div>
+        <div>
+          <span class="num asher" id="dash-asher-year">—</span>
+          <span class="label">Asher / year</span>
         </div>
       </div>
       <p style="font-size: 0.82rem; color: var(--ink-500); margin: 0.5rem 0 0;">Weekly × 52. Naps not subtracted.</p>
@@ -310,6 +319,7 @@
     <div class="split-legend" style="margin-top: 0.75rem;">
       <span class="item jess"><span class="dot"></span>Jess</span>
       <span class="item mike"><span class="dot"></span>Mike</span>
+      <span class="item asher"><span class="dot"></span>Asher</span>
       <span class="item split"><span class="dot"></span>Split</span>
       <span class="item open"><span class="dot"></span>Open</span>
     </div>
@@ -320,7 +330,7 @@
     <div class="suit-stack" id="dash-suits" style="margin-top: 1.25rem;"></div>
   </div>
 
-  <div class="grid-2" style="margin-bottom: 1rem;">
+  <div class="grid-3" style="margin-bottom: 1rem;">
     <div class="surface">
       <h3>Top 5 cards Jess carries</h3>
       <ol id="dash-top-jess" class="top-list"></ol>
@@ -328,6 +338,10 @@
     <div class="surface">
       <h3>Top 5 cards Mike carries</h3>
       <ol id="dash-top-mike" class="top-list"></ol>
+    </div>
+    <div class="surface">
+      <h3>Top 5 cards Asher carries</h3>
+      <ol id="dash-top-asher" class="top-list"></ol>
     </div>
   </div>
 

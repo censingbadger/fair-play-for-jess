@@ -32,6 +32,8 @@
   --penguin:    #3F4E5F;
   --kitty:      #C77D4F;
   --kitty-soft: #E8B98C;
+  --asher:      #6BAF92;
+  --asher-soft: #A8D2BC;
 
   /* Charcoal / text */
   --ink-900:    #1C1917;
@@ -452,8 +454,9 @@ main {
   line-height: 1;
   letter-spacing: -0.03em;
 }
-.stat-block .num.jess { color: var(--penguin); }
-.stat-block .num.mike { color: var(--kitty); }
+.stat-block .num.jess  { color: var(--penguin); }
+.stat-block .num.mike  { color: var(--kitty); }
+.stat-block .num.asher { color: var(--asher); }
 .stat-block .unit {
   font-family: var(--font-sans);
   font-size: 0.95rem;
@@ -466,6 +469,7 @@ main {
   gap: 1.5rem;
   align-items: end;
 }
+.stat-block.split-row.three { grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
 .stat-block.split-row > div { display: flex; flex-direction: column; gap: 0.25rem; }
 .stat-block.split-row .label {
   font-size: 0.85rem;
@@ -500,6 +504,7 @@ main {
 }
 .split-bar .seg.jess  { background: linear-gradient(90deg, var(--penguin), var(--slate-700)); }
 .split-bar .seg.mike  { background: linear-gradient(90deg, var(--kitty), var(--peach-400)); color: var(--ink-900); }
+.split-bar .seg.asher { background: linear-gradient(90deg, var(--asher), var(--asher-soft)); color: var(--ink-900); }
 .split-bar .seg.split { background: var(--gold-500); }
 .split-bar .seg.open  { background: var(--ink-300); color: var(--ink-900); }
 
@@ -515,6 +520,7 @@ main {
 .split-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
 .split-legend .item.jess  .dot { background: var(--penguin); }
 .split-legend .item.mike  .dot { background: var(--kitty); }
+.split-legend .item.asher .dot { background: var(--asher); }
 .split-legend .item.split .dot { background: var(--gold-500); }
 .split-legend .item.open  .dot { background: var(--ink-300); }
 
@@ -695,6 +701,7 @@ main {
 }
 .owner-badge.jess  { background: rgba(63, 78, 95, 0.10);   color: var(--penguin); }
 .owner-badge.mike  { background: rgba(199, 125, 79, 0.12); color: var(--kitty); }
+.owner-badge.asher { background: rgba(107, 175, 146, 0.15); color: #4F8B6F; }
 .owner-badge.split { background: rgba(212, 160, 74, 0.15); color: var(--gold-600); }
 .owner-badge.open  { background: rgba(168, 162, 158, 0.18); color: var(--ink-700); }
 
