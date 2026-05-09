@@ -620,7 +620,11 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       const conflictEvents = events.filter(e => conflicts.has(e));
 
       const ownerEmoji = (key) => {
-        if (key === "both") return "🤝";
+        if (key === "both") {
+          const j = (window.PEOPLE.jess && window.PEOPLE.jess.emoji) || "🐧";
+          const m = (window.PEOPLE.mike && window.PEOPLE.mike.emoji) || "🐱";
+          return `${j}${m}`;
+        }
         const o = window.PEOPLE[key];
         return o ? o.emoji : "❓";
       };
@@ -664,7 +668,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
           ${both.map(e => `
             <div class="cal-row both-row">
               <span class="cal-row-time">${dayLabel(new Date(e.start.iso))} ${formatTime(e)}</span>
-              <span class="cal-row-owner both">🤝</span>
+              <span class="cal-row-owner both">${ownerEmoji("both")}</span>
               <span class="cal-row-title">${escapeHTML(e.summary)}</span>
             </div>
           `).join("")}
