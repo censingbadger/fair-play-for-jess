@@ -1310,6 +1310,17 @@ textarea.share-link {
   color: var(--rose-400);
   margin: 0.6rem 0 0.4rem;
 }
+.cal-block-head.both {
+  color: var(--gold-600);
+}
+.cal-both {
+  background: linear-gradient(135deg, rgba(63,78,95,0.06), rgba(199,125,79,0.08));
+  border: 1px solid rgba(212,160,74,0.35);
+  border-radius: var(--r-md);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.cal-both .both-row { padding: 0.3rem 0.4rem; }
 
 .cal-conflicts {
   background: rgba(234, 142, 120, 0.08);

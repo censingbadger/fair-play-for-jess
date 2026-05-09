@@ -657,7 +657,21 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         </div>
       `;
 
-      // Conflicts block — top, red, full attention
+      // 🤝 Both block — pulled to the top, compact list with day + time
+      const bothHtml = both.length === 0 ? "" : `
+        <div class="cal-both">
+          <div class="cal-block-head both">🤝 You're both at</div>
+          ${both.map(e => `
+            <div class="cal-row both-row">
+              <span class="cal-row-time">${dayLabel(new Date(e.start.iso))} ${formatTime(e)}</span>
+              <span class="cal-row-owner both">🤝</span>
+              <span class="cal-row-title">${escapeHTML(e.summary)}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+
+      // Conflicts block — also at top, red, full attention
       const conflictsHtml = conflictEvents.length === 0 ? "" : `
         <div class="cal-conflicts">
           <div class="cal-block-head">⚠ Conflicts</div>
@@ -671,10 +685,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         </div>
       `;
 
-      // Day-grouped, compact one-liners (excluding conflict events — they're at the top)
-      const nonConflict = events.filter(e => !conflicts.has(e));
+      // Day-grouped single-owner non-conflict events (the "calendar" itself)
+      const dayEvents = events.filter(e => e.owner !== "both" && !conflicts.has(e));
       const byDay = new Map();
-      nonConflict.forEach(e => {
+      dayEvents.forEach(e => {
         const d = new Date(e.start.iso); d.setHours(0,0,0,0);
         const key = d.toISOString();
         if (!byDay.has(key)) byDay.set(key, []);
@@ -694,7 +708,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         ? `<small>${filtered.hidden} hidden · <a href="#" id="thisweek-tweak">tweak →</a></small>`
         : "";
 
-      el.innerHTML = summaryLine + conflictsHtml + dayBlocksHtml + `
+      el.innerHTML = summaryLine + bothHtml + conflictsHtml + dayBlocksHtml + `
         <div class="cal-foot">
           <button class="btn btn-ghost btn-sm" id="thisweek-refresh" type="button">↻ Refresh</button>
           ${hiddenNote}
