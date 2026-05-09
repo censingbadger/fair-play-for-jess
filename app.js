@@ -695,7 +695,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     const owner = primaryOwner(c);
     const ownerInfo = window.PEOPLE[owner];
     const t = mentalLoadSplit(c);
-    const loadTotal = t.jess + t.mike + t.open;
+    const loadTotal = t.jess + t.mike + t.asher + t.open;
     const suit = window.SUITS[c.suit];
 
     wrap.innerHTML = `
@@ -710,9 +710,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         <div class="load-block">
           <span class="lbl">Mental load on this card</span>
           ${renderSplitBar({
-            jess: pct(t.jess, loadTotal),
-            mike: pct(t.mike, loadTotal),
-            open: pct(t.open, loadTotal)
+            jess:  pct(t.jess,  loadTotal),
+            mike:  pct(t.mike,  loadTotal),
+            asher: pct(t.asher, loadTotal),
+            open:  pct(t.open,  loadTotal)
           })}
         </div>
         ${c.discussionPrompt ? `
