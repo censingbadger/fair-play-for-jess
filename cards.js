@@ -489,11 +489,11 @@ const CARDS = [
     minimumStandard: "Stripes gets active play most days of the week."
   }),
   card({
-    id: "asher-clear-dishes", suit: "home", title: "Clearing his dishes", icon: "🧽",
-    description: "Plate, cup, utensils to the sink/dishwasher after meals.",
+    id: "asher-clear-dishes", suit: "home", title: "Clearing family dishes", icon: "🧽",
+    description: "Everyone's plates, cups, utensils to the sink/dishwasher after meals.",
     cpe: { C: "asher", P: "asher", E: "asher" },
-    weeklyHours: 0.5, status: "agreed",
-    minimumStandard: "His spot at the table is clear before he leaves it."
+    weeklyHours: 1.5, status: "agreed",
+    minimumStandard: "Table cleared and dishes to sink or dishwasher after every family meal."
   })
 ];
 
