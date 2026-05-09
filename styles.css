@@ -321,7 +321,7 @@ main {
   font-size: clamp(2.5rem, 6vw, 4.25rem);
   font-weight: 400;
   font-style: italic;
-  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-variation-settings: "SOFT" 100;
   margin-bottom: 1rem;
   background: linear-gradient(135deg, var(--ink-900) 30%, var(--rose-400) 70%);
   -webkit-background-clip: text;
