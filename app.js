@@ -1899,7 +1899,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (calPreset) {
       calPreset.addEventListener("click", () => {
         if (calIncIn)   calIncIn.value   = "school, Asher, Glenwood, crushers, WC, Practice, Tournament, Boat, Zoo, field trip, drive, game, playdate, pick, dinner, parents, party, banquet, award, presentation day";
-        if (calExcIn)   calExcIn.value   = "grade, prep, teams, MBA, UBP, Undergraduate, Business, Lead, class, meeting";
+        if (calExcIn)   calExcIn.value   = "grade, prep, teams, MBA, UBP, Undergraduate, Business, Lead, class, meeting, due, deadline, draft, review, sync, recap, planning, strategy, faculty";
         if (calStrict)  calStrict.checked = true;
         if (calWeekend) calWeekend.checked = true;
         if (calAllDay)  calAllDay.checked = true;
