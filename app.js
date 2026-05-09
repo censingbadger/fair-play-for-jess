@@ -347,11 +347,14 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       const matchInc = inc.length > 0 && inc.some(k => t.includes(k));
       const matchExc = exc.length > 0 && exc.some(k => t.includes(k));
 
-      // Always-show keywords win unconditionally.
+      // Always-show keywords win unconditionally (override every other rule).
       if (matchInc) return true;
 
+      // Always-hide keywords beat weekend/all-day/outside-hours auto-show.
+      if (matchExc) { hidden++; return false; }
+
       if (f.strictMode) {
-        // Whitelist: only weekend / all-day / outside-hours / matched-keyword events show.
+        // Whitelist: only weekend / all-day / outside-hours events show (since no include match).
         const d = e.start && e.start.iso ? new Date(e.start.iso) : null;
         if (d) {
           const dow  = d.getDay(); // 0 = Sun, 6 = Sat
@@ -365,8 +368,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         return false;
       }
 
-      // Loose mode: hide only if matched by always-hide.
-      if (matchExc) { hidden++; return false; }
+      // Loose mode: nothing else hides.
       return true;
     });
     return { keep, hidden };
@@ -944,9 +946,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     // Re-render dynamic views on entry.
     if (name === "deck")      renderDeck();
     if (name === "walk")      renderWalk();
-    if (name === "trips")     renderTrips();
-    if (name === "dashboard") renderDashboard();
-    if (name === "meeting")   renderMeeting();
+    if (name === "trips")      renderTrips();
+    if (name === "dashboard")  renderDashboard();
+    if (name === "meeting")    renderMeeting();
+    if (name === "coordinate") renderThisWeek();
   }
 
   // ---------- RENDER: COVER ----------
@@ -1671,9 +1674,8 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     document.getElementById("dash-mike-year").textContent  = Math.round(time.mike  * 52).toLocaleString();
     document.getElementById("dash-asher-year").textContent = Math.round(time.asher * 52).toLocaleString();
 
-    // Coming up — next active trips + this week's calendar events
+    // Coming up — next active trips (calendar lives in its own Coordinate tab now)
     renderUpcomingTrips();
-    renderThisWeek();
 
     // Suits
     document.getElementById("dash-suits").innerHTML = renderSuitStack(cards);
@@ -1872,7 +1874,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         try { localStorage.removeItem(ICS_CACHE_KEY); } catch (e) {}
         await fetchAllCalendars(true);
         showToast("Calendar events loaded ✨");
-        setView("dashboard"); // jump to where the events appear
+        setView("coordinate"); // jump to where the events appear
       });
     }
 
@@ -1890,7 +1892,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (calPreset) {
       calPreset.addEventListener("click", () => {
         if (calIncIn)   calIncIn.value   = "school, Asher, Glenwood, crushers, WC, Practice, Tournament, Boat, Zoo, field trip, drive, game, playdate, pick, dinner, parents, party, banquet, award, presentation day";
-        if (calExcIn)   calExcIn.value   = "";
+        if (calExcIn)   calExcIn.value   = "grade, prep, teams, MBA, UBP, Undergraduate, Business, Lead, class, meeting";
         if (calStrict)  calStrict.checked = true;
         if (calWeekend) calWeekend.checked = true;
         if (calAllDay)  calAllDay.checked = true;
@@ -1919,8 +1921,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
           workEndHour:   calEnd     ? calEnd.value       : 16
         });
         showToast("Filters saved");
-        renderThisWeek();
-        setView("dashboard");
+        setView("coordinate");
       });
     }
 

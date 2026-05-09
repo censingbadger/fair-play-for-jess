@@ -28,6 +28,7 @@
       <button data-view="cover">Cover</button>
       <button data-view="primer">How it works</button>
       <button data-view="dashboard">Dashboard</button>
+      <button data-view="coordinate">Coordinate</button>
       <button data-view="trips">Trips</button>
       <button data-view="walk">Walk-through</button>
       <button data-view="deck">Deck</button>
@@ -218,6 +219,19 @@
   </div>
 </section>
 
+<!-- ╔══════════════ COORDINATE (this week's coordination summary) ══════════════╗ -->
+<section class="view" data-view="coordinate">
+  <div class="section-head">
+    <div class="eyebrow">This week</div>
+    <h2>Coordinate</h2>
+    <p class="lead">Outlook events for the next 7 days, deduped across both your calendars and grouped by what needs attention. Pulls from Settings filters; refreshes every 30 min.</p>
+  </div>
+
+  <div class="surface" style="margin-bottom: 1rem;">
+    <div id="dash-thisweek" class="cal-list"></div>
+  </div>
+</section>
+
 <!-- ╔══════════════ MEETING (Sunday Logistics Wizard) ══════════════╗ -->
 <section class="view" data-view="meeting">
   <div class="section-head">
@@ -387,13 +401,6 @@
     <div id="dash-upcoming" class="upcoming-list" style="margin-top: 1rem;"></div>
   </div>
 
-  <div class="surface" style="margin-bottom: 1rem;">
-    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-      <h3 style="margin: 0;">This week's calendar</h3>
-      <small style="color: var(--ink-500);">Outlook · refreshes every 30 min</small>
-    </div>
-    <div id="dash-thisweek" class="cal-list" style="margin-top: 1rem;"></div>
-  </div>
 
   <div class="surface" style="margin-bottom: 1rem;">
     <h3>By suit</h3>
@@ -501,9 +508,9 @@
       </div>
 
       <div class="field">
-        <label>🚫 Always hide keywords <span style="color: var(--ink-500); font-weight: 400;">(loose mode only)</span></label>
-        <textarea id="cal-exclude" rows="2" style="font-family: var(--font-sans); resize: vertical;" placeholder="Standup, 1:1, Sync, OOO"></textarea>
-        <div class="hint">Ignored when strict mode is on.</div>
+        <label>🚫 Always hide keywords</label>
+        <textarea id="cal-exclude" rows="2" style="font-family: var(--font-sans); resize: vertical;" placeholder="grade, prep, teams, MBA, UBP, Undergraduate, Business, Lead, class, meeting"></textarea>
+        <div class="hint">Anything matching is hidden in both strict and loose mode (always-show keywords still win).</div>
       </div>
 
       <div class="field">
