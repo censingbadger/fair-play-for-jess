@@ -28,6 +28,7 @@
       <button data-view="cover">Cover</button>
       <button data-view="primer">How it works</button>
       <button data-view="dashboard">Dashboard</button>
+      <button data-view="meeting">Meeting</button>
       <button data-view="trips">Trips</button>
       <button data-view="walk">Walk-through</button>
       <button data-view="deck">Deck</button>
@@ -218,6 +219,32 @@
   </div>
 </section>
 
+<!-- ╔══════════════ MEETING (Sunday Logistics Wizard) ══════════════╗ -->
+<section class="view" data-view="meeting">
+  <div class="section-head">
+    <div class="eyebrow">Sunday logistics meeting</div>
+    <h2 id="meeting-step-title">Walk through the week together</h2>
+    <p class="lead" id="meeting-step-sub">~20 min, four short steps. Auto-saves; pause anytime.</p>
+  </div>
+
+  <div class="meeting-progress">
+    <div class="step-pill" data-step="1">1</div>
+    <div class="step-line"></div>
+    <div class="step-pill" data-step="2">2</div>
+    <div class="step-line"></div>
+    <div class="step-pill" data-step="3">3</div>
+    <div class="step-line"></div>
+    <div class="step-pill" data-step="4">4</div>
+  </div>
+
+  <div id="meeting-content"></div>
+
+  <div class="nav-btns" style="margin-top: 2rem;">
+    <button class="btn btn-secondary" id="meeting-prev" type="button">← Previous</button>
+    <button class="btn btn-primary" id="meeting-next" type="button">Next step →</button>
+  </div>
+</section>
+
 <!-- ╔══════════════ TRIPS ══════════════╗ -->
 <section class="view" data-view="trips">
   <div class="section-head">
@@ -339,6 +366,17 @@
       <span class="item asher"><span class="dot"></span>Asher</span>
       <span class="item split"><span class="dot"></span>Split</span>
       <span class="item open"><span class="dot"></span>Open</span>
+    </div>
+  </div>
+
+  <div class="surface" style="margin-bottom: 1rem; background: linear-gradient(135deg, #FFF1E0, #FFE0CC); border: 1px solid var(--peach-300);">
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 220px;">
+        <div class="eyebrow" style="color: var(--rose-400); margin-bottom: 0.4rem;">Sunday cadence</div>
+        <h3 style="margin: 0 0 0.25rem;">Walk through the week together</h3>
+        <p style="margin: 0; font-size: 0.92rem; color: var(--ink-700);">~20 min, 4 short steps: recap → week ahead → cards to discuss → wrap.</p>
+      </div>
+      <button class="btn btn-primary" id="dash-meeting-link" type="button">Start meeting →</button>
     </div>
   </div>
 

@@ -38,6 +38,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     trips: null,        // null = use DEFAULT_TRIPS; array = user-edited list
     icsUrls: { jess: "", mike: "" }, // Outlook calendar feed URLs
     calFilters: { include: "", exclude: "" }, // comma-separated keywords (case-insensitive)
+    currentMeeting: { step: 1, notes: { worked: "", didnt: "", forNextWeek: "" } },
     note: DEFAULT_NOTE,
     walkIndex: 0,
     deckFilter: "all",  // all | discuss | open | jess | mike | split
@@ -118,6 +119,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       if (Array.isArray(remote.trips)) state.trips = remote.trips;
       if (remote.icsUrls && typeof remote.icsUrls === "object") state.icsUrls = remote.icsUrls;
       if (remote.calFilters && typeof remote.calFilters === "object") state.calFilters = remote.calFilters;
+      if (remote.currentMeeting && typeof remote.currentMeeting === "object") state.currentMeeting = remote.currentMeeting;
       if (typeof remote.note === "string" && remote.note.length > 0) {
         state.note = remote.note;
       }
@@ -623,6 +625,237 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     });
   }
 
+  // ---------- SUNDAY MEETING WIZARD ----------
+  function getMeeting() {
+    return Object.assign(
+      { step: 1, notes: { worked: "", didnt: "", forNextWeek: "" } },
+      state.currentMeeting || {}
+    );
+  }
+  function setMeetingStep(step) {
+    const m = getMeeting();
+    m.step = Math.max(1, Math.min(4, step));
+    state.currentMeeting = m;
+    saveState();
+  }
+  function setMeetingNote(field, value) {
+    const m = getMeeting();
+    m.notes = Object.assign({}, m.notes, { [field]: value });
+    state.currentMeeting = m;
+    saveState();
+  }
+
+  function renderMeeting() {
+    const m = getMeeting();
+    const titleEl = document.getElementById("meeting-step-title");
+    const subEl   = document.getElementById("meeting-step-sub");
+    const content = document.getElementById("meeting-content");
+    if (!content) return;
+
+    // Step indicator
+    document.querySelectorAll(".step-pill").forEach(p => {
+      const n = parseInt(p.dataset.step, 10);
+      p.classList.toggle("active", n === m.step);
+      p.classList.toggle("done",   n < m.step);
+    });
+    document.querySelectorAll(".step-line").forEach((l, i) => {
+      l.classList.toggle("done", (i + 1) < m.step);
+    });
+
+    const titles = {
+      1: { t: "Step 1 · Recap", s: "How did last week go? Two minutes each." },
+      2: { t: "Step 2 · Week ahead", s: "Calendar + trips. Who's covering what?" },
+      3: { t: "Step 3 · Cards to discuss", s: "Anything to swap, agree on, or open up?" },
+      4: { t: "Step 4 · Wrap", s: "Anything for next week? Then end the meeting." }
+    };
+    if (titleEl) titleEl.textContent = titles[m.step].t;
+    if (subEl)   subEl.textContent   = titles[m.step].s;
+
+    if (m.step === 1) renderMeetingStep1(content, m);
+    else if (m.step === 2) renderMeetingStep2(content, m);
+    else if (m.step === 3) renderMeetingStep3(content, m);
+    else if (m.step === 4) renderMeetingStep4(content, m);
+
+    const prev = document.getElementById("meeting-prev");
+    const next = document.getElementById("meeting-next");
+    if (prev) prev.disabled = m.step === 1;
+    if (next) next.textContent = m.step === 4 ? "End meeting ✓" : "Next step →";
+  }
+
+  function renderMeetingStep1(el, m) {
+    const cards = allCards();
+    const { time, load } = totals(cards);
+    const tT = time.jess + time.mike + (time.asher || 0) + time.open;
+    const lT = load.jess + load.mike + (load.asher || 0) + load.open;
+    el.innerHTML = `
+      <div class="meeting-step">
+        <h3>How did last week go?</h3>
+        <p class="step-prompt">Quick check-in. No wrong answers — this becomes data over time.</p>
+        <div class="stat-quick">
+          <div><span class="num jess" style="color: var(--penguin)">${pct(load.jess, lT)}%</span><span class="lbl">🐧 Jess load</span></div>
+          <div><span class="num mike" style="color: var(--kitty)">${pct(load.mike, lT)}%</span><span class="lbl">🐱 Mike load</span></div>
+          ${(load.asher||0) > 0 ? `<div><span class="num" style="color: var(--asher)">${pct(load.asher, lT)}%</span><span class="lbl">🌱 Asher load</span></div>` : ""}
+          <div><span class="num" style="color: var(--ink-900)">${time.jess.toFixed(1) + " / " + time.mike.toFixed(1)}</span><span class="lbl">Hours/wk · J / M</span></div>
+        </div>
+        <div class="field-stack">
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; color: var(--ink-700); display: block; margin-bottom: 0.4rem;">✅ What worked?</label>
+            <textarea id="m-worked" placeholder="One thing you appreciated. Tiny is fine.">${escapeHTML(m.notes.worked || "")}</textarea>
+          </div>
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; color: var(--ink-700); display: block; margin-bottom: 0.4rem;">⚠️ What didn't?</label>
+            <textarea id="m-didnt" placeholder="What dropped, what felt heavy. Be honest, not harsh.">${escapeHTML(m.notes.didnt || "")}</textarea>
+          </div>
+        </div>
+      </div>
+    `;
+    el.querySelector("#m-worked").addEventListener("input", e => setMeetingNote("worked", e.target.value));
+    el.querySelector("#m-didnt").addEventListener("input", e => setMeetingNote("didnt", e.target.value));
+  }
+
+  function renderMeetingStep2(el, m) {
+    const trips = sortedTrips().filter(t => t.status !== "done").slice(0, 3);
+    el.innerHTML = `
+      <div class="meeting-step">
+        <h3>What's coming up?</h3>
+        <p class="step-prompt">Look at the week, talk about who's covering what. Tap any event or trip to discuss.</p>
+        <div class="embed-panel">
+          <h4>📅 This week's calendar</h4>
+          <div id="meeting-calendar" class="cal-list"></div>
+        </div>
+        <div class="embed-panel">
+          <h4>🗓️ Trips & milestones</h4>
+          <div id="meeting-trips" class="upcoming-list"></div>
+        </div>
+      </div>
+    `;
+    // Reuse existing renderers, retargeted at the meeting view's containers
+    const calBox = document.getElementById("meeting-calendar");
+    const tripsBox = document.getElementById("meeting-trips");
+    if (calBox) {
+      // Borrow the dashboard's render but write to this container
+      const orig = document.getElementById("dash-thisweek");
+      if (orig) {
+        // Temporarily swap the id so renderThisWeek targets the meeting one
+        orig.id = "dash-thisweek-was";
+        calBox.id = "dash-thisweek";
+        renderThisWeek();
+        // Restore ids after a tick
+        setTimeout(() => {
+          if (calBox.id === "dash-thisweek") calBox.id = "meeting-calendar";
+          if (orig.id === "dash-thisweek-was") orig.id = "dash-thisweek";
+        }, 50);
+      } else {
+        calBox.innerHTML = `<div class="upcoming-empty">No calendar feeds yet. <a href="#" id="meeting-cal-setup">Add in Settings →</a></div>`;
+        const link = calBox.querySelector("#meeting-cal-setup");
+        if (link) link.addEventListener("click", e => { e.preventDefault(); setView("about"); });
+      }
+    }
+    if (tripsBox) {
+      if (trips.length === 0) {
+        tripsBox.innerHTML = `<div class="upcoming-empty" style="font-style: italic;">No active trips on the horizon.</div>`;
+      } else {
+        tripsBox.innerHTML = trips.map(t => {
+          const owner = window.PEOPLE[t.owner] || window.PEOPLE.open;
+          return `
+            <div class="upcoming-row" data-trip-id="${t.id}" role="button" tabindex="0">
+              <span class="upcoming-icon">${t.icon || "🗓️"}</span>
+              <div class="upcoming-body">
+                <div class="upcoming-title">${escapeHTML(t.title)}</div>
+                <div class="upcoming-sub">${escapeHTML(tripDateLabel(t.targetDate))} · ${escapeHTML(tripTimeAway(t.targetDate))}</div>
+              </div>
+              <span class="owner-badge ${t.owner}">${owner.emoji} ${owner.name}</span>
+            </div>
+          `;
+        }).join("");
+        tripsBox.querySelectorAll("[data-trip-id]").forEach(row => {
+          row.addEventListener("click", () => openTripModal(row.dataset.tripId));
+        });
+      }
+    }
+  }
+
+  function renderMeetingStep3(el, m) {
+    const cards = allCards().filter(c => c.status === "discuss" || c.status === "open");
+    el.innerHTML = `
+      <div class="meeting-step">
+        <h3>Cards flagged for us</h3>
+        <p class="step-prompt">${cards.length} card${cards.length === 1 ? "" : "s"} marked 💬 Discuss or ❓ Open. Tap to edit ownership, agree, or rebalance.</p>
+        ${cards.length === 0
+          ? `<div style="background: rgba(127, 160, 104, 0.08); padding: 1rem 1.25rem; border-radius: var(--r-md); color: var(--sage-500); font-weight: 600;">🎉 No cards flagged. You're aligned.</div>`
+          : cards.map(c => {
+              const owner = window.PEOPLE[primaryOwner(c)] || window.PEOPLE.open;
+              const flag = c.status === "open" ? "❓" : "💬";
+              return `
+                <div class="meeting-card-row" data-card-id="${c.id}">
+                  <span class="icon">${c.icon || "🪄"}</span>
+                  <div>
+                    <div class="title">${flag} ${escapeHTML(c.title)}</div>
+                    <div class="sub">${escapeHTML(window.SUITS[c.suit].name)} · ${c.weeklyHours}h/wk</div>
+                  </div>
+                  <span class="owner-badge ${primaryOwner(c)}">${owner.emoji} ${owner.name}</span>
+                </div>
+              `;
+            }).join("")
+        }
+      </div>
+    `;
+    el.querySelectorAll("[data-card-id]").forEach(row => {
+      row.addEventListener("click", () => openCard(row.dataset.cardId));
+    });
+  }
+
+  function renderMeetingStep4(el, m) {
+    const cards = allCards();
+    const { time, load } = totals(cards);
+    const lT = load.jess + load.mike + (load.asher || 0) + load.open;
+    el.innerHTML = `
+      <div class="meeting-step">
+        <h3>Wrap up</h3>
+        <p class="step-prompt">One last thing — anything to remember for next week?</p>
+        <div class="stat-quick">
+          <div><span class="num" style="color: var(--penguin)">${pct(load.jess, lT)}%</span><span class="lbl">🐧 Jess</span></div>
+          <div><span class="num" style="color: var(--kitty)">${pct(load.mike, lT)}%</span><span class="lbl">🐱 Mike</span></div>
+          ${(load.asher||0) > 0 ? `<div><span class="num" style="color: var(--asher)">${pct(load.asher, lT)}%</span><span class="lbl">🌱 Asher</span></div>` : ""}
+        </div>
+        <div class="field-stack">
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; color: var(--ink-700); display: block; margin-bottom: 0.4rem;">📝 Notes for next week</label>
+            <textarea id="m-next" placeholder="One reminder, one ask, one win to repeat.">${escapeHTML(m.notes.forNextWeek || "")}</textarea>
+          </div>
+        </div>
+        <div style="margin-top: 1.5rem; padding: 1rem 1.25rem; background: var(--cream-100); border-radius: var(--r-md); font-size: 0.9rem; color: var(--ink-700);">
+          <strong>This week's snapshot</strong> (auto-saved):<br>
+          <small style="color: var(--ink-500);">Jess ${time.jess.toFixed(1)}h · Mike ${time.mike.toFixed(1)}h${(time.asher||0) > 0 ? ` · Asher ${time.asher.toFixed(1)}h` : ""}</small>
+        </div>
+      </div>
+    `;
+    el.querySelector("#m-next").addEventListener("input", e => setMeetingNote("forNextWeek", e.target.value));
+  }
+
+  function endMeeting() {
+    // Reset for next week — keep nothing in current; next meeting starts fresh.
+    state.currentMeeting = { step: 1, notes: { worked: "", didnt: "", forNextWeek: "" } };
+    saveState();
+    showToast("Meeting wrapped — see you next Sunday ✨");
+    setView("dashboard");
+  }
+
+  function meetingNext() {
+    const m = getMeeting();
+    if (m.step >= 4) { endMeeting(); return; }
+    setMeetingStep(m.step + 1);
+    renderMeeting();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function meetingPrev() {
+    const m = getMeeting();
+    if (m.step <= 1) return;
+    setMeetingStep(m.step - 1);
+    renderMeeting();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   // ---------- VIEW ROUTING ----------
   function setView(name) {
     activeView = name;
@@ -639,6 +872,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (name === "walk")      renderWalk();
     if (name === "trips")     renderTrips();
     if (name === "dashboard") renderDashboard();
+    if (name === "meeting")   renderMeeting();
   }
 
   // ---------- RENDER: COVER ----------
@@ -1504,6 +1738,25 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     // Walk
     document.getElementById("walk-prev").addEventListener("click", walkPrev);
     document.getElementById("walk-next").addEventListener("click", walkNext);
+
+    // Meeting wizard
+    const mPrev = document.getElementById("meeting-prev");
+    const mNext = document.getElementById("meeting-next");
+    if (mPrev) mPrev.addEventListener("click", meetingPrev);
+    if (mNext) mNext.addEventListener("click", meetingNext);
+    // Step pills are clickable shortcuts
+    document.querySelectorAll(".step-pill").forEach(p => {
+      p.addEventListener("click", () => {
+        const n = parseInt(p.dataset.step, 10);
+        if (n >= 1 && n <= 4) { setMeetingStep(n); renderMeeting(); }
+      });
+    });
+    // Dashboard "Start meeting" button
+    const dashMeeting = document.getElementById("dash-meeting-link");
+    if (dashMeeting) dashMeeting.addEventListener("click", () => {
+      setMeetingStep(1);
+      setView("meeting");
+    });
 
     // Modal close on backdrop
     document.getElementById("modal-backdrop").addEventListener("click", e => {

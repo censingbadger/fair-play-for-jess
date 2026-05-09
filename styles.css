@@ -1138,6 +1138,149 @@ textarea.share-link {
   .trip-when { grid-column: 1 / -1; text-align: left; padding-left: 3.25rem; }
 }
 
+/* ─── Meeting wizard ──────────────────────────────────────────────────── */
+.meeting-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 auto 2rem;
+  max-width: 480px;
+}
+.step-pill {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cream-100);
+  color: var(--ink-300);
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 200ms ease, color 200ms ease, transform 200ms ease;
+  cursor: pointer;
+}
+.step-pill.active {
+  background: var(--ink-900);
+  color: var(--cream-50);
+  transform: scale(1.06);
+}
+.step-pill.done {
+  background: var(--sage-500);
+  color: white;
+}
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--cream-200);
+  border-radius: 2px;
+}
+.step-line.done { background: var(--sage-500); }
+
+.meeting-step {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-2);
+}
+.meeting-step h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+.meeting-step .step-prompt {
+  font-size: 1rem;
+  color: var(--ink-700);
+  margin-bottom: 1.25rem;
+}
+.meeting-step textarea {
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  font: inherit;
+  font-size: 0.95rem;
+  background: var(--surface);
+  color: var(--ink-900);
+  min-height: 100px;
+  font-family: var(--font-serif);
+  line-height: 1.6;
+  resize: vertical;
+}
+.meeting-step textarea:focus {
+  outline: 0;
+  border-color: var(--peach-400);
+  box-shadow: 0 0 0 3px rgba(250, 184, 144, 0.25);
+}
+.meeting-step .field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.meeting-step .embed-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 1rem;
+  background: var(--cream-50);
+  margin-top: 1rem;
+}
+.meeting-step .embed-panel h4 {
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink-700);
+}
+.meeting-step .stat-quick {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.meeting-step .stat-quick > div {
+  font-family: var(--font-sans);
+}
+.meeting-step .stat-quick .num {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.6rem;
+  display: block;
+  line-height: 1;
+}
+.meeting-step .stat-quick .lbl {
+  font-size: 0.78rem;
+  color: var(--ink-500);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 0.3rem;
+}
+
+/* Compact card row for the "Cards to discuss" step */
+.meeting-card-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--r-md);
+  background: var(--cream-50);
+  cursor: pointer;
+  transition: background 150ms ease;
+  margin-bottom: 0.4rem;
+}
+.meeting-card-row:hover { background: var(--cream-100); }
+.meeting-card-row .icon { font-size: 1.3rem; }
+.meeting-card-row .title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--ink-900);
+}
+.meeting-card-row .sub {
+  font-size: 0.8rem;
+  color: var(--ink-500);
+}
+
 /* ─── Calendar (this week) ────────────────────────────────────────────── */
 .cal-list { display: flex; flex-direction: column; gap: 1rem; }
 .cal-day { display: flex; flex-direction: column; gap: 0.4rem; }
