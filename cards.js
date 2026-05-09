@@ -5,10 +5,11 @@
 // flag what's worth examining together. Edit freely.
 
 const PEOPLE = {
-  jess:  { id: "jess",  name: "Jess", emoji: "🐧", color: "#3F4E5F" },
-  mike:  { id: "mike",  name: "Mike", emoji: "🐱", color: "#C77D4F" },
+  jess:  { id: "jess",  name: "Jess",  emoji: "🐧", color: "#3F4E5F" },
+  mike:  { id: "mike",  name: "Mike",  emoji: "🐱", color: "#C77D4F" },
+  asher: { id: "asher", name: "Asher", emoji: "⚾", color: "#6BAF92" },
   split: { id: "split", name: "Split", emoji: "🤝", color: "#D4A04A" },
-  open:  { id: "open",  name: "Open", emoji: "❓", color: "#A8A29E" }
+  open:  { id: "open",  name: "Open",  emoji: "❓", color: "#A8A29E" }
 };
 
 // Mental load weights — Conception > Planning > Execution.
@@ -470,6 +471,29 @@ const CARDS = [
     weeklyHours: 0.25, status: "discuss",
     minimumStandard: "Asher gradually owns age-appropriate tasks.",
     discussionPrompt: "From the deck — and at 10, he's ready for some real cards (bag check, lunchbox unpack, room baseline). Want to launch a few this Sunday?"
+  }),
+
+  // ════════ ASHER'S CARDS ════════════════════════════════════════════════════
+  card({
+    id: "asher-homework", suit: "school", title: "Homework (Asher's part)", icon: "📝",
+    description: "Doing it when assigned, packing it back in the bag.",
+    cpe: { C: "asher", P: "asher", E: "asher" },
+    weeklyHours: 4, status: "agreed",
+    minimumStandard: "Assignments done before screens or play."
+  }),
+  card({
+    id: "asher-cat-play", suit: "home", title: "Stripes — daily play", icon: "🪀",
+    description: "10–15 min of cat playtime — feathers, laser, chase.",
+    cpe: { C: "asher", P: "asher", E: "asher" },
+    weeklyHours: 1.5, status: "agreed",
+    minimumStandard: "Stripes gets active play most days of the week."
+  }),
+  card({
+    id: "asher-clear-dishes", suit: "home", title: "Clearing his dishes", icon: "🧽",
+    description: "Plate, cup, utensils to the sink/dishwasher after meals.",
+    cpe: { C: "asher", P: "asher", E: "asher" },
+    weeklyHours: 0.5, status: "agreed",
+    minimumStandard: "His spot at the table is clear before he leaves it."
   })
 ];
 
