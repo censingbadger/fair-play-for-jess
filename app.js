@@ -37,7 +37,15 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     customCards: [],    // user-added cards (full card objects), id starts with "custom-"
     trips: null,        // null = use DEFAULT_TRIPS; array = user-edited list
     icsUrls: { jess: "", mike: "" }, // Outlook calendar feed URLs
-    calFilters: { include: "", exclude: "" }, // comma-separated keywords (case-insensitive)
+    calFilters: {
+      include: "school, Asher, Glenwood, crushers, WC, Practice, Tournament, Boat, Zoo, field trip, drive, game, playdate, pick, dinner, parents, party, banquet, award, presentation day",
+      exclude: "grade, prep, teams, MBA, UBP, Undergraduate, Business, Lead, class, meeting, due, deadline, draft, review, sync, recap, planning, strategy, faculty",
+      strictMode: true,
+      showWeekends: true,
+      showAllDay: true,
+      workStartHour: 9,
+      workEndHour: 16
+    },
     currentMeeting: { step: 1, notes: { worked: "", didnt: "", forNextWeek: "" } },
     note: DEFAULT_NOTE,
     walkIndex: 0,
@@ -118,7 +126,12 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       if (Array.isArray(remote.customCards)) state.customCards = remote.customCards;
       if (Array.isArray(remote.trips)) state.trips = remote.trips;
       if (remote.icsUrls && typeof remote.icsUrls === "object") state.icsUrls = remote.icsUrls;
-      if (remote.calFilters && typeof remote.calFilters === "object") state.calFilters = remote.calFilters;
+      // Only override local filters if remote has actually populated keywords —
+      // otherwise an empty Firestore doc would wipe out our preset defaults.
+      if (remote.calFilters && typeof remote.calFilters === "object"
+          && (remote.calFilters.include || remote.calFilters.exclude)) {
+        state.calFilters = remote.calFilters;
+      }
       if (remote.currentMeeting && typeof remote.currentMeeting === "object") state.currentMeeting = remote.currentMeeting;
       if (typeof remote.note === "string" && remote.note.length > 0) {
         state.note = remote.note;
@@ -312,9 +325,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
 
   function getCalFilters() {
     return Object.assign({
-      include: "",
-      exclude: "",
-      strictMode: false,         // when true: hide everything not whitelisted by a rule below
+      include: "school, Asher, Glenwood, crushers, WC, Practice, Tournament, Boat, Zoo, field trip, drive, game, playdate, pick, dinner, parents, party, banquet, award, presentation day",
+      exclude: "grade, prep, teams, MBA, UBP, Undergraduate, Business, Lead, class, meeting, due, deadline, draft, review, sync, recap, planning, strategy, faculty",
+      strictMode: true,          // when true: hide everything not whitelisted by a rule below
       showWeekends: true,        // strict mode only: always show Sat/Sun events
       showAllDay: true,          // strict mode only: always show all-day events
       workStartHour: 9,          // strict mode only: events before this hour are always shown
