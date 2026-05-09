@@ -530,7 +530,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   function thisWeekEvents(cache) {
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const end   = new Date(start.getTime() + 7 * 86400000);
-    const out = [];
+    const raw = [];
     ["jess", "mike"].forEach(owner => {
       (cache[owner] || []).forEach(e => {
         if (!e.start || !e.start.iso) return;
@@ -539,13 +539,49 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
           if (!inst.start || !inst.start.iso) return;
           const t = new Date(inst.start.iso).getTime();
           if (t >= start.getTime() && t < end.getTime()) {
-            out.push(Object.assign({}, inst, { owner }));
+            raw.push(Object.assign({}, inst, { owner }));
           }
         });
       });
     });
-    console.log("[ics] thisWeekEvents", { jessCount: (cache.jess || []).length, mikeCount: (cache.mike || []).length, expanded: out.length });
-    return out.sort((a, b) => new Date(a.start.iso) - new Date(b.start.iso));
+    // Dedupe shared events (same title + same start minute) → owner = "both".
+    const byKey = new Map();
+    const order = [];
+    raw.forEach(e => {
+      const key = (e.summary || "").toLowerCase().trim() + "|" + e.start.iso.slice(0, 16);
+      if (byKey.has(key)) {
+        byKey.get(key).owner = "both";
+      } else {
+        byKey.set(key, e);
+        order.push(e);
+      }
+    });
+    console.log("[ics] thisWeekEvents", {
+      jessCount: (cache.jess || []).length,
+      mikeCount: (cache.mike || []).length,
+      raw: raw.length,
+      deduped: order.length
+    });
+    return order.sort((a, b) => new Date(a.start.iso) - new Date(b.start.iso));
+  }
+
+  // Find time-conflicts: same start minute, different non-"both" owners.
+  function findConflicts(events) {
+    const flagged = new Set();
+    for (let i = 0; i < events.length; i++) {
+      for (let j = i + 1; j < events.length; j++) {
+        const a = events[i], b = events[j];
+        if (a.owner === "both" || b.owner === "both") continue;
+        if (a.owner === b.owner) continue;
+        if (!a.start || !b.start) continue;
+        const ta = new Date(a.start.iso).getTime();
+        const tb = new Date(b.start.iso).getTime();
+        if (Math.abs(ta - tb) < 30 * 60000) {
+          flagged.add(a); flagged.add(b);
+        }
+      }
+    }
+    return flagged;
   }
 
   function renderThisWeek() {
@@ -577,41 +613,79 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       }
       const today = new Date(); today.setHours(0,0,0,0);
       const tomorrow = new Date(today.getTime() + 86400000);
+      const conflicts = findConflicts(events);
+      const both = events.filter(e => e.owner === "both");
+      const single = events.filter(e => e.owner !== "both");
+
+      const ownerLabel = (key) => {
+        if (key === "both") return { emoji: "🤝", name: "Both", className: "both" };
+        const o = window.PEOPLE[key] || window.PEOPLE.open;
+        return { emoji: o.emoji, name: o.name, className: key };
+      };
+
+      // Summary header
+      const summaryHtml = `
+        <div class="cal-summary">
+          <div class="cal-summary-stat"><span class="num">${events.length}</span><span class="lbl">events</span></div>
+          <div class="cal-summary-stat"><span class="num">${single.length}</span><span class="lbl">need coord</span></div>
+          <div class="cal-summary-stat"><span class="num">${both.length}</span><span class="lbl">both at it</span></div>
+          ${conflicts.size > 0
+            ? `<div class="cal-summary-stat conflict"><span class="num">${conflicts.size}</span><span class="lbl">⚠ conflicts</span></div>`
+            : ""}
+        </div>
+      `;
+
+      // Group single events by day
       const byDay = new Map();
-      events.forEach(e => {
+      single.forEach(e => {
         const d = new Date(e.start.iso); d.setHours(0,0,0,0);
         const key = d.toISOString();
         if (!byDay.has(key)) byDay.set(key, []);
         byDay.get(key).push(e);
       });
-      const daysHtml = Array.from(byDay.entries()).map(([key, evs]) => {
-        const d = new Date(key);
-        let label = d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
-        if (d.getTime() === today.getTime())    label = "Today · " + label;
-        if (d.getTime() === tomorrow.getTime()) label = "Tomorrow · " + label;
+      const renderEvent = (e, conflicted) => {
+        const lbl = ownerLabel(e.owner);
+        const t = e.start.allDay
+          ? "All day"
+          : new Date(e.start.iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
         return `
-          <div class="cal-day">
-            <div class="cal-day-label">${label}</div>
-            ${evs.map(e => {
-              const owner = window.PEOPLE[e.owner] || window.PEOPLE.open;
-              const t = e.start.allDay
-                ? "All day"
-                : new Date(e.start.iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-              return `
-                <div class="cal-event">
-                  <span class="cal-time">${t}</span>
-                  <span class="cal-title">${escapeHTML(e.summary)}</span>
-                  <span class="owner-badge ${e.owner}">${owner.emoji} ${owner.name}</span>
-                </div>
-              `;
-            }).join("")}
+          <div class="cal-event ${conflicted ? "conflict" : ""}">
+            <span class="cal-time">${t}</span>
+            <span class="cal-title">${conflicted ? "⚠ " : ""}${escapeHTML(e.summary)}</span>
+            <span class="owner-badge ${lbl.className}">${lbl.emoji} ${lbl.name}</span>
           </div>
         `;
-      }).join("");
+      };
+
+      const singleHtml = single.length === 0 ? "" : `
+        <div class="cal-section-head">🚦 Need coordination</div>
+        ${Array.from(byDay.entries()).map(([key, evs]) => {
+          const d = new Date(key);
+          let label = d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+          if (d.getTime() === today.getTime())    label = "Today · " + label;
+          if (d.getTime() === tomorrow.getTime()) label = "Tomorrow · " + label;
+          return `
+            <div class="cal-day">
+              <div class="cal-day-label">${label}</div>
+              ${evs.map(e => renderEvent(e, conflicts.has(e))).join("")}
+            </div>
+          `;
+        }).join("")}
+      `;
+
+      // "Both" events shown as a compact grouped list (no day grouping needed — it's just FYI)
+      const bothHtml = both.length === 0 ? "" : `
+        <details class="cal-both-group">
+          <summary>🤝 ${both.length} event${both.length === 1 ? "" : "s"} you're both at — tap to expand</summary>
+          ${both.map(e => renderEvent(e, false)).join("")}
+        </details>
+      `;
+
       const hiddenNote = filtered.hidden > 0
         ? `<small>${filtered.hidden} hidden by filter · <a href="#" id="thisweek-tweak">tweak →</a></small>`
         : "";
-      el.innerHTML = daysHtml + `
+
+      el.innerHTML = summaryHtml + singleHtml + bothHtml + `
         <div class="cal-foot">
           <button class="btn btn-ghost btn-sm" id="thisweek-refresh" type="button">↻ Refresh</button>
           ${hiddenNote}

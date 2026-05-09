@@ -1283,6 +1283,82 @@ textarea.share-link {
 
 /* ─── Calendar (this week) ────────────────────────────────────────────── */
 .cal-list { display: flex; flex-direction: column; gap: 1rem; }
+
+.cal-summary {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, var(--cream-100), var(--cream-50));
+  border-radius: var(--r-md);
+}
+.cal-summary-stat {
+  flex: 1;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  padding: 0.4rem 0.5rem;
+}
+.cal-summary-stat .num {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--ink-900);
+}
+.cal-summary-stat .lbl {
+  font-size: 0.72rem;
+  color: var(--ink-500);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 0.3rem;
+}
+.cal-summary-stat.conflict .num { color: var(--rose-400); }
+.cal-summary-stat.conflict .lbl { color: var(--rose-400); }
+
+.cal-section-head {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-700);
+  margin: 0.5rem 0 0.25rem;
+}
+
+.cal-event.conflict {
+  background: rgba(234, 142, 120, 0.08);
+  border-left: 3px solid var(--rose-400);
+  padding-left: 0.55rem;
+}
+
+.owner-badge.both {
+  background: linear-gradient(90deg, rgba(63, 78, 95, 0.12), rgba(199, 125, 79, 0.12));
+  color: var(--ink-700);
+  font-weight: 700;
+}
+
+.cal-both-group {
+  margin-top: 1rem;
+  background: var(--cream-50);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 0.5rem 0.85rem;
+}
+.cal-both-group > summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--ink-700);
+  font-weight: 600;
+  padding: 0.4rem 0;
+  list-style: none;
+}
+.cal-both-group > summary::-webkit-details-marker { display: none; }
+.cal-both-group[open] > summary { margin-bottom: 0.5rem; border-bottom: 1px dashed var(--line-2); }
+.cal-both-group .cal-event { background: transparent; }
+
 .cal-day { display: flex; flex-direction: column; gap: 0.4rem; }
 .cal-day-label {
   font-family: var(--font-serif);
