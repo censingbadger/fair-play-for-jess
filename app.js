@@ -2016,8 +2016,19 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
           window.removeEventListener("afterprint", cleanup);
         };
         window.addEventListener("afterprint", cleanup);
-        // Brief defer so the print stylesheet applies before the dialog opens.
-        setTimeout(() => window.print(), 50);
+        // Must be called synchronously inside the click handler — iOS Safari
+        // (especially in standalone PWA mode) drops window.print() if it's
+        // deferred via setTimeout because the user-gesture context is lost.
+        try {
+          window.print();
+        } catch (err) {
+          showToast("Print not available — try the Share menu instead");
+          cleanup();
+        }
+        // Fallback safety: if the print dialog never fires (some iOS PWA
+        // versions silently no-op), strip the printing class after 5s so the
+        // app isn't stuck in print-mode.
+        setTimeout(cleanup, 5000);
       });
     });
   }
