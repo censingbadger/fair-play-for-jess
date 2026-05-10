@@ -350,6 +350,8 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       else if (owner === "split") { out.jess += share / 2; out.mike += share / 2; }
       else if (owner === "mostly-jess") { out.jess += share * 0.8; out.mike += share * 0.2; }
       else if (owner === "mostly-mike") { out.mike += share * 0.8; out.jess += share * 0.2; }
+      else if (owner === "jess-asher")  { out.jess  += share / 2; out.asher += share / 2; }
+      else if (owner === "mike-asher")  { out.mike  += share / 2; out.asher += share / 2; }
       else out.open += share;
     });
     return out;
@@ -367,6 +369,8 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       else if (owner === "split") { out.jess += w / 2; out.mike += w / 2; }
       else if (owner === "mostly-jess") { out.jess += w * 0.8; out.mike += w * 0.2; }
       else if (owner === "mostly-mike") { out.mike += w * 0.8; out.jess += w * 0.2; }
+      else if (owner === "jess-asher")  { out.jess  += w / 2; out.asher += w / 2; }
+      else if (owner === "mike-asher")  { out.mike  += w / 2; out.asher += w / 2; }
       else out.open += w;
     });
     return out;
@@ -1201,10 +1205,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (filter === "discuss") return c.status === "discuss";
     if (filter === "open")    return c.status === "open";
     const po = primaryOwner(c);
-    // "Jess" / "Mike" filters also catch the 80/20 lean variants.
-    if (filter === "jess")    return po === "jess"  || po === "mostly-jess";
-    if (filter === "mike")    return po === "mike"  || po === "mostly-mike";
-    if (filter === "asher")   return po === "asher";
+    // Each person's filter catches the lean variants and parent-asher splits too.
+    if (filter === "jess")    return po === "jess"  || po === "mostly-jess" || po === "jess-asher";
+    if (filter === "mike")    return po === "mike"  || po === "mostly-mike" || po === "mike-asher";
+    if (filter === "asher")   return po === "asher" || po === "jess-asher"  || po === "mike-asher";
     if (filter === "split")   return po === "split";
     return true;
   }
@@ -1282,7 +1286,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
               <select data-cpe="${k}">
                 <option value="jess"          ${c.cpe[k]==="jess"?"selected":""}>🐧 Jess</option>
                 <option value="mostly-jess"   ${c.cpe[k]==="mostly-jess"?"selected":""}>🐧⁺ Mostly Jess (80/20)</option>
-                <option value="split"         ${c.cpe[k]==="split"?"selected":""}>🤝 Split (50/50)</option>
+                <option value="jess-asher"    ${c.cpe[k]==="jess-asher"?"selected":""}>🐧⚾ Jess & Asher (50/50)</option>
+                <option value="split"         ${c.cpe[k]==="split"?"selected":""}>🤝 Jess & Mike (50/50)</option>
+                <option value="mike-asher"    ${c.cpe[k]==="mike-asher"?"selected":""}>🐱⚾ Mike & Asher (50/50)</option>
                 <option value="mostly-mike"   ${c.cpe[k]==="mostly-mike"?"selected":""}>🐱⁺ Mostly Mike (80/20)</option>
                 <option value="mike"          ${c.cpe[k]==="mike"?"selected":""}>🐱 Mike</option>
                 <option value="asher"         ${c.cpe[k]==="asher"?"selected":""}>⚾ Asher</option>
@@ -1616,7 +1622,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
                 <option value="open" selected>❓ Open</option>
                 <option value="jess">🐧 Jess</option>
                 <option value="mostly-jess">🐧⁺ Mostly Jess (80/20)</option>
-                <option value="split">🤝 Split (50/50)</option>
+                <option value="jess-asher">🐧⚾ Jess & Asher (50/50)</option>
+                <option value="split">🤝 Jess & Mike (50/50)</option>
+                <option value="mike-asher">🐱⚾ Mike & Asher (50/50)</option>
                 <option value="mostly-mike">🐱⁺ Mostly Mike (80/20)</option>
                 <option value="mike">🐱 Mike</option>
                 <option value="asher">⚾ Asher</option>
