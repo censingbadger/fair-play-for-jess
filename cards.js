@@ -5,11 +5,13 @@
 // flag what's worth examining together. Edit freely.
 
 const PEOPLE = {
-  jess:  { id: "jess",  name: "Jess",  emoji: "🐧", color: "#3F4E5F" },
-  mike:  { id: "mike",  name: "Mike",  emoji: "🐱", color: "#C77D4F" },
-  asher: { id: "asher", name: "Asher", emoji: "⚾", color: "#6BAF92" },
-  split: { id: "split", name: "Split", emoji: "🤝", color: "#D4A04A" },
-  open:  { id: "open",  name: "Open",  emoji: "❓", color: "#A8A29E" }
+  jess:           { id: "jess",           name: "Jess",        emoji: "🐧", color: "#3F4E5F" },
+  mike:           { id: "mike",           name: "Mike",        emoji: "🐱", color: "#C77D4F" },
+  asher:          { id: "asher",          name: "Asher",       emoji: "⚾", color: "#6BAF92" },
+  "mostly-jess":  { id: "mostly-jess",    name: "Mostly Jess", emoji: "🐧⁺", color: "#5C6F84" },
+  "mostly-mike":  { id: "mostly-mike",    name: "Mostly Mike", emoji: "🐱⁺", color: "#D4936A" },
+  split:          { id: "split",          name: "Split",       emoji: "🤝", color: "#D4A04A" },
+  open:           { id: "open",           name: "Open",        emoji: "❓", color: "#A8A29E" }
 };
 
 // Mental load weights — Conception > Planning > Execution.
