@@ -1204,12 +1204,20 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (filter === "all") return true;
     if (filter === "discuss") return c.status === "discuss";
     if (filter === "open")    return c.status === "open";
-    const po = primaryOwner(c);
-    // Each person's filter catches the lean variants and parent-asher splits too.
-    if (filter === "jess")    return po === "jess"  || po === "mostly-jess" || po === "jess-asher";
-    if (filter === "mike")    return po === "mike"  || po === "mostly-mike" || po === "mike-asher";
-    if (filter === "asher")   return po === "asher" || po === "jess-asher"  || po === "mike-asher";
-    if (filter === "split")   return po === "split";
+    // Each person's filter surfaces a card if that person is involved in ANY
+    // CPE slot — including 50/50 splits and 80/20 leans. So a Jess & Mike
+    // split card shows up under both Jess and Mike.
+    if (filter === "jess" || filter === "mike" || filter === "asher") {
+      return ["C","P","E"].some(k => {
+        const o = c.cpe[k];
+        if (filter === "jess")  return o === "jess"  || o === "mostly-jess" || o === "split" || o === "jess-asher";
+        if (filter === "mike")  return o === "mike"  || o === "mostly-mike" || o === "split" || o === "mike-asher";
+        if (filter === "asher") return o === "asher" || o === "jess-asher"  || o === "mike-asher";
+        return false;
+      });
+    }
+    // Split filter still narrows to cards whose dominant owner is the 50/50 split.
+    if (filter === "split") return primaryOwner(c) === "split";
     return true;
   }
 
