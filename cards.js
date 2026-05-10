@@ -10,6 +10,8 @@ const PEOPLE = {
   asher:          { id: "asher",          name: "Asher",       emoji: "⚾", color: "#6BAF92" },
   "mostly-jess":  { id: "mostly-jess",    name: "Mostly Jess", emoji: "🐧⁺", color: "#5C6F84" },
   "mostly-mike":  { id: "mostly-mike",    name: "Mostly Mike", emoji: "🐱⁺", color: "#D4936A" },
+  "jess-asher":   { id: "jess-asher",     name: "Jess & Asher", emoji: "🐧⚾", color: "#5A8AA0" },
+  "mike-asher":   { id: "mike-asher",     name: "Mike & Asher", emoji: "🐱⚾", color: "#A28565" },
   split:          { id: "split",          name: "Split",       emoji: "🤝", color: "#D4A04A" },
   open:           { id: "open",           name: "Open",        emoji: "❓", color: "#A8A29E" }
 };
