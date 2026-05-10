@@ -11,12 +11,12 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Fair Play" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.jpg?v=32" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.jpg?v=34" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600;1,9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=32" />
+  <link rel="stylesheet" href="styles.css?v=34" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E🐧%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
@@ -37,6 +37,7 @@
       <button data-view="primer">How it works</button>
       <button data-view="dashboard">Dashboard</button>
       <button data-view="coordinate">Coordinate</button>
+      <button data-view="chores">Chores</button>
       <button data-view="trips">Trips</button>
       <button data-view="walk">Walk-through</button>
       <button data-view="deck">Deck</button>
@@ -243,6 +244,16 @@
   <div class="surface" style="margin-bottom: 1rem;">
     <div id="dash-thisweek" class="cal-list"></div>
   </div>
+</section>
+
+<!-- ╔══════════════ CHORES (per-person weekly list) ══════════════╗ -->
+<section class="view" data-view="chores">
+  <div class="section-head">
+    <div class="eyebrow">This week</div>
+    <h2>Chores by person</h2>
+    <p class="lead">Each person's cards for the week, with the CPE slots they own. Click into any card to add a note about what needs doing this week. Tap "Print" to leave one person's list on the fridge.</p>
+  </div>
+  <div id="chores-container"></div>
 </section>
 
 <!-- ╔══════════════ MEETING (Sunday Logistics Wizard) ══════════════╗ -->
@@ -664,6 +675,7 @@
           icsUrls:        stateObj.icsUrls        || { jess: "", mike: "" },
           calFilters:     stateObj.calFilters     || {},
           currentMeeting: stateObj.currentMeeting || { step: 1, notes: {} },
+          weeklyChoreNotes: stateObj.weeklyChoreNotes || {},
           note:           stateObj.note           || "",
           clientId,
           updatedAt: serverTimestamp()
@@ -679,7 +691,7 @@
   window.dispatchEvent(new CustomEvent("fp-sync-ready"));
 </script>
 
-<script src="cards.js?v=32"></script>
-<script src="app.js?v=32"></script>
+<script src="cards.js?v=34"></script>
+<script src="app.js?v=34"></script>
 </body>
 </html>
