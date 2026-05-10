@@ -1536,9 +1536,135 @@ textarea.share-link {
   .walk-card { padding: 1.5rem; }
 }
 
-/* ─── Print (for printing the agreed plan) ────────────────────────────── */
+/* ─── Chores tab (per-person weekly list) ─────────────────────────────── */
+.chores-section { margin-bottom: 2.5rem; }
+.chores-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.chores-head h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.4rem;
+  margin: 0;
+}
+.chores-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.chore-card {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: 0.9rem 1.1rem;
+  box-shadow: var(--shadow-1);
+  border: 1px solid var(--line);
+}
+.chore-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.85rem;
+  align-items: start;
+  margin-bottom: 0.6rem;
+}
+.chore-icon { font-size: 1.5rem; line-height: 1.2; }
+.chore-title-block { min-width: 0; }
+.chore-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+  line-height: 1.25;
+}
+.chore-slots {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+.chore-slot {
+  font-size: 0.74rem;
+  padding: 0.18rem 0.55rem;
+  background: var(--cream-100);
+  border-radius: var(--r-pill);
+  color: var(--ink-700);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.chore-slot small { color: var(--ink-500); font-weight: 400; margin-left: 0.2rem; }
+.chore-allthree {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.65rem;
+  background: linear-gradient(135deg, var(--cream-100), var(--peach-300));
+  border-radius: var(--r-pill);
+  color: var(--ink-900);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.chore-hours {
+  font-size: 0.78rem;
+  color: var(--ink-500);
+  font-weight: 600;
+  white-space: nowrap;
+  margin-top: 0.25rem;
+}
+.chore-note {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  font: inherit;
+  font-size: 0.92rem;
+  font-family: var(--font-serif);
+  background: var(--cream-50);
+  color: var(--ink-900);
+  resize: vertical;
+  line-height: 1.5;
+}
+.chore-note:focus {
+  outline: 0;
+  border-color: var(--peach-400);
+  box-shadow: 0 0 0 3px rgba(250, 184, 144, 0.25);
+}
+.chores-empty {
+  font-style: italic;
+  color: var(--ink-500);
+  padding: 1rem 1.25rem;
+  background: var(--cream-100);
+  border-radius: var(--r-md);
+  font-size: 0.92rem;
+}
+
+/* ─── Print: the chores tab supports per-person print isolation ────────── */
 @media print {
   .app-header, .nav-tabs, .btn, .modal-foot, .deck-controls, .nav-btns { display: none !important; }
   body { background: white; }
   .card, .surface { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+
+  /* When a print button on the Chores tab is clicked, body gets
+     `printing` + `printing-<person>`. Show ONLY that person's section. */
+  body.printing .view:not([data-view="chores"]) { display: none !important; }
+  body.printing .chores-print { display: none !important; }
+  body.printing-jess  .chores-section:not(.chores-jess)  { display: none !important; }
+  body.printing-mike  .chores-section:not(.chores-mike)  { display: none !important; }
+  body.printing-asher .chores-section:not(.chores-asher) { display: none !important; }
+
+  .chore-card {
+    box-shadow: none;
+    border: 1px solid #bbb;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .chore-note {
+    background: white !important;
+    border: 1px dashed #888 !important;
+    min-height: 30px;
+  }
+  .chores-section h3 { font-size: 1.5rem; }
 }
