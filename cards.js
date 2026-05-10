@@ -178,6 +178,13 @@ const CARDS = [
     weeklyHours: 0.25, status: "agreed",
     minimumStandard: "No packages sitting outside overnight."
   }),
+  card({
+    id: "feed-birds", suit: "home", title: "Feed birds", icon: "🐦",
+    description: "Refill the bird feeder and keep it stocked.",
+    cpe: { C: "mike", P: "mike", E: "mike" },
+    weeklyHours: 0.25, status: "agreed",
+    minimumStandard: "Feeder kept stocked through the seasons."
+  }),
 
   // ════════ SCHOOL & CHILD DEVELOPMENT ══════════════════════════════════════
   card({
