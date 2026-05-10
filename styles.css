@@ -704,6 +704,8 @@ main {
 .owner-badge.open  { background: rgba(168, 162, 158, 0.18); color: var(--ink-700); }
 .owner-badge.mostly-jess { background: rgba(63, 78, 95, 0.08);   color: var(--penguin); border: 1px dashed rgba(63, 78, 95, 0.35); }
 .owner-badge.mostly-mike { background: rgba(199, 125, 79, 0.08); color: var(--kitty);   border: 1px dashed rgba(199, 125, 79, 0.4); }
+.owner-badge.jess-asher  { background: linear-gradient(135deg, rgba(63, 78, 95, 0.10), rgba(107, 175, 146, 0.18)); color: #3F4E5F; }
+.owner-badge.mike-asher  { background: linear-gradient(135deg, rgba(199, 125, 79, 0.12), rgba(107, 175, 146, 0.18)); color: var(--kitty); }
 
 /* status flag icon, top right */
 .card .status-flag {
