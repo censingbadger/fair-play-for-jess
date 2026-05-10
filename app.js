@@ -47,6 +47,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       workEndHour: 16
     },
     currentMeeting: { step: 1, notes: { worked: "", didnt: "", forNextWeek: "" } },
+    weeklyChoreNotes: {},  // { [cardId]: { jess: "", mike: "", asher: "" } } — per-person notes
     note: DEFAULT_NOTE,
     walkIndex: 0,
     deckFilter: "all",  // all | discuss | open | jess | mike | split
@@ -133,6 +134,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         state.calFilters = remote.calFilters;
       }
       if (remote.currentMeeting && typeof remote.currentMeeting === "object") state.currentMeeting = remote.currentMeeting;
+      if (remote.weeklyChoreNotes && typeof remote.weeklyChoreNotes === "object") state.weeklyChoreNotes = remote.weeklyChoreNotes;
       if (typeof remote.note === "string" && remote.note.length > 0) {
         state.note = remote.note;
       }
@@ -144,6 +146,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       if (activeView === "walk")      renderWalk();
       if (activeView === "trips")     renderTrips();
       if (activeView === "dashboard") renderDashboard();
+      if (activeView === "chores")    renderChores();
       if (!isInitial) showToast("Updated by Jess ✨");
     } finally {
       applyingRemote = false;
@@ -1067,6 +1070,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (name === "dashboard")  renderDashboard();
     if (name === "meeting")    renderMeeting();
     if (name === "coordinate") renderThisWeek();
+    if (name === "chores")     renderChores();
   }
 
   // ---------- RENDER: COVER ----------
@@ -1903,6 +1907,119 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     state.walkIndex++;
     saveState();
     renderWalk();
+  }
+
+  // ---------- CHORES (per-person weekly list) ----------
+  function getChoreNote(cardId, person) {
+    const notes = state.weeklyChoreNotes || {};
+    return (notes[cardId] && notes[cardId][person]) || "";
+  }
+  function setChoreNote(cardId, person, text) {
+    const notes = Object.assign({}, state.weeklyChoreNotes || {});
+    notes[cardId] = Object.assign({}, notes[cardId] || {});
+    notes[cardId][person] = text;
+    state.weeklyChoreNotes = notes;
+    saveState();
+  }
+
+  // Returns CPE keys ("C","P","E") where this person has primary or split share.
+  // Skips 20% leans (a "Mostly Mike" slot doesn't put it on Jess's chore list).
+  function personSlotsOnCard(c, who) {
+    return ["C","P","E"].filter(k => {
+      const o = c.cpe[k];
+      if (who === "jess")  return o === "jess"  || o === "mostly-jess" || o === "split" || o === "jess-asher";
+      if (who === "mike")  return o === "mike"  || o === "mostly-mike" || o === "split" || o === "mike-asher";
+      if (who === "asher") return o === "asher" || o === "jess-asher"  || o === "mike-asher";
+      return false;
+    });
+  }
+  function describeShare(o, who) {
+    if (o === who) return "";
+    if (o === "mostly-" + who) return "mostly you";
+    if (o === "split") return who === "jess" ? "with Mike" : "with Jess";
+    if (o === "jess-asher") return who === "jess" ? "with Asher" : "with Jess";
+    if (o === "mike-asher") return who === "mike" ? "with Asher" : "with Mike";
+    return "";
+  }
+
+  function renderChores() {
+    const container = document.getElementById("chores-container");
+    if (!container) return;
+    const cards = allCards();
+    const slotLabel = { C: "Notice", P: "Plan", E: "Do" };
+    const people = [
+      { id: "jess",  name: "Jess",  emoji: "🐧" },
+      { id: "mike",  name: "Mike",  emoji: "🐱" },
+      { id: "asher", name: "Asher", emoji: "⚾" }
+    ];
+
+    let html = "";
+    people.forEach(person => {
+      const myCards = cards
+        .map(c => ({ c, slots: personSlotsOnCard(c, person.id) }))
+        .filter(x => x.slots.length > 0)
+        .sort((a, b) => (b.c.weeklyHours || 0) - (a.c.weeklyHours || 0));
+
+      const cardsHtml = myCards.length === 0
+        ? `<div class="chores-empty">No chores assigned to ${person.name}.</div>`
+        : myCards.map(({ c, slots }) => {
+            // Slot pills: "Notice", "Plan", "Do" — each annotated if it's a split or lean.
+            const slotsHtml = slots.map(k => {
+              const o = c.cpe[k];
+              const share = describeShare(o, person.id);
+              return `<span class="chore-slot">${slotLabel[k]}${share ? ` <small>${share}</small>` : ""}</span>`;
+            }).join("");
+            // "All three" shorthand
+            const allThree = slots.length === 3 ? `<span class="chore-allthree">All three (Notice · Plan · Do)</span>` : "";
+            const note = escapeHTML(getChoreNote(c.id, person.id));
+            return `
+              <div class="chore-card" data-card-id="${c.id}">
+                <div class="chore-head">
+                  <span class="chore-icon">${c.icon}</span>
+                  <div class="chore-title-block">
+                    <div class="chore-title">${escapeHTML(c.title)}</div>
+                    <div class="chore-slots">${allThree || slotsHtml}</div>
+                  </div>
+                  <div class="chore-hours">${c.weeklyHours}h/wk</div>
+                </div>
+                <textarea class="chore-note" placeholder="What needs doing this week? (notes save automatically)" rows="2" data-card-id="${c.id}" data-person="${person.id}">${note}</textarea>
+              </div>
+            `;
+          }).join("");
+
+      html += `
+        <section class="chores-section chores-${person.id}" data-person="${person.id}">
+          <div class="chores-head">
+            <h3>${person.emoji} ${person.name}'s chores this week</h3>
+            <button class="btn btn-secondary btn-sm chores-print" data-person="${person.id}" type="button">🖨 Print ${person.name}'s list</button>
+          </div>
+          <div class="chores-list">${cardsHtml}</div>
+        </section>
+      `;
+    });
+    container.innerHTML = html;
+
+    // Save notes as you type (debounced via input event + saveState debouncing).
+    container.querySelectorAll(".chore-note").forEach(t => {
+      t.addEventListener("input", e => {
+        setChoreNote(e.target.dataset.cardId, e.target.dataset.person, e.target.value);
+      });
+    });
+
+    // Print buttons: temporarily mark body so @media print can isolate one person.
+    container.querySelectorAll(".chores-print").forEach(btn => {
+      btn.addEventListener("click", e => {
+        const person = e.currentTarget.dataset.person;
+        document.body.classList.add("printing", "printing-" + person);
+        const cleanup = () => {
+          document.body.classList.remove("printing", "printing-jess", "printing-mike", "printing-asher");
+          window.removeEventListener("afterprint", cleanup);
+        };
+        window.addEventListener("afterprint", cleanup);
+        // Brief defer so the print stylesheet applies before the dialog opens.
+        setTimeout(() => window.print(), 50);
+      });
+    });
   }
 
   // ---------- DASHBOARD ----------
