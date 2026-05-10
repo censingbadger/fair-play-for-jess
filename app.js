@@ -265,6 +265,67 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     const y = Math.round(days / 365); return `in ${y} year${y === 1 ? "" : "s"}`;
   }
 
+  // ---------- ICS EXPORT ----------
+  // Generate a downloadable .ics file. iOS Safari will hand it to the Calendar
+  // app, which lets the user pick which calendar to add it to (Outlook included
+  // when the Exchange account is configured on the device).
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function icsEscape(s) {
+    return String(s || "")
+      .replace(/\\/g, "\\\\")
+      .replace(/\r?\n/g, "\\n")
+      .replace(/,/g, "\\,")
+      .replace(/;/g, "\\;");
+  }
+  function icsDateOnly(isoDate) { return (isoDate || "").replace(/-/g, ""); }
+  function icsDateOnlyPlusOne(isoDate) {
+    const d = new Date(isoDate + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}`;
+  }
+  function icsLocalDateTime(isoDate, hh, mm) {
+    return `${icsDateOnly(isoDate)}T${pad2(hh)}${pad2(mm)}00`;
+  }
+  function icsNowUtc() {
+    const d = new Date();
+    return `${d.getUTCFullYear()}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}${pad2(d.getUTCSeconds())}Z`;
+  }
+  function buildIcsFile({ uid, title, start, end, allDay, description, location }) {
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Fair Play for Jess, Mike & Asher//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `DTSTAMP:${icsNowUtc()}`,
+      allDay ? `DTSTART;VALUE=DATE:${start}` : `DTSTART:${start}`,
+      end ? (allDay ? `DTEND;VALUE=DATE:${end}` : `DTEND:${end}`) : null,
+      `SUMMARY:${icsEscape(title)}`,
+      description ? `DESCRIPTION:${icsEscape(description)}` : null,
+      location ? `LOCATION:${icsEscape(location)}` : null,
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ].filter(Boolean);
+    return lines.join("\r\n") + "\r\n";
+  }
+  function downloadIcs(filename, content) {
+    const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || "event.ics";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+  }
+  function slugify(s) {
+    return String(s || "event").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "event";
+  }
+
   // ---------- COMPUTE ----------
   function timeSplit(card) {
     // Returns { jess, mike, asher, open } — hours per week, fractional.
@@ -1422,8 +1483,9 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       <div class="modal-foot">
         ${isNew
           ? `<button class="btn btn-ghost" id="trip-cancel" type="button">Cancel</button>`
-          : `<button class="btn btn-ghost" id="trip-delete" type="button" style="color: var(--rose-400);">🗑 Delete this trip</button>`}
+          : `<button class="btn btn-ghost" id="trip-delete" type="button" style="color: var(--rose-400);">🗑 Delete</button>`}
         <div class="spacer"></div>
+        ${isNew ? "" : `<button class="btn btn-secondary" id="trip-ics" type="button">📅 Add to calendar</button>`}
         <button class="btn btn-primary" id="trip-save" type="button">${isNew ? "Add trip" : "Save"}</button>
       </div>
     `;
@@ -1451,6 +1513,23 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       showToast("Trip deleted");
       if (activeView === "trips")     renderTrips();
       if (activeView === "dashboard") renderDashboard();
+    });
+    const tripIcsBtn = m.querySelector("#trip-ics");
+    if (tripIcsBtn) tripIcsBtn.addEventListener("click", () => {
+      const date = m.querySelector("#trip-date").value || t.targetDate;
+      if (!date) { showToast("Set a target date first"); return; }
+      const title = (m.querySelector("#trip-title").value.trim() || t.title || "Trip");
+      const notes = m.querySelector("#trip-notes").value;
+      const ics = buildIcsFile({
+        uid: `${t.id}@fairplay-jess.app`,
+        title,
+        start: icsDateOnly(date),
+        end: icsDateOnlyPlusOne(date),
+        allDay: true,
+        description: notes
+      });
+      downloadIcs(`${slugify(title)}.ics`, ics);
+      showToast("Tap the file to add to a calendar");
     });
     m.querySelector("#trip-save").addEventListener("click", () => {
       const title = m.querySelector("#trip-title").value.trim();
@@ -1591,6 +1670,110 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       showToast("Card added ✨");
       if (activeView === "deck")      renderDeck();
       if (activeView === "dashboard") renderDashboard();
+    });
+  }
+
+  // ---------- MODAL: ADD CALENDAR EVENT (Coordinate) ----------
+  function openAddEventModal() {
+    const m = document.getElementById("modal");
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}`;
+    m.innerHTML = `
+      <button class="close" aria-label="Close" type="button">×</button>
+      <h2>＋ Add an event</h2>
+      <div class="desc">Generates a calendar invite (.ics). Tap the downloaded file on your phone — iOS opens "Add to Calendar" and lets you pick which calendar (Outlook included if your work account is on the device).</div>
+
+      <div class="field">
+        <label>Title <span style="color: var(--rose-400)">*</span></label>
+        <input type="text" id="event-title" placeholder="e.g. Sunday logistics meeting" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="event-date" value="${todayIso}" />
+      </div>
+
+      <div class="field">
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="event-allday" style="width: auto; margin: 0;" />
+          <span>All day</span>
+        </label>
+      </div>
+
+      <div class="field" id="event-times-field">
+        <label>Time</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <input type="time" id="event-start" value="20:00" />
+          <input type="time" id="event-end" value="20:30" />
+        </div>
+        <div class="hint">Start · End</div>
+      </div>
+
+      <div class="field">
+        <label>Location (optional)</label>
+        <input type="text" id="event-location" placeholder="" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label>Notes (optional)</label>
+        <textarea id="event-notes" placeholder="Anything to remember."></textarea>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="event-cancel" type="button">Cancel</button>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="event-save" type="button">📅 Download .ics</button>
+      </div>
+    `;
+    document.getElementById("modal-backdrop").classList.add("active");
+    setTimeout(() => { const el = m.querySelector("#event-title"); if (el) el.focus(); }, 50);
+
+    const allday = m.querySelector("#event-allday");
+    const timesField = m.querySelector("#event-times-field");
+    allday.addEventListener("change", () => {
+      timesField.style.display = allday.checked ? "none" : "";
+    });
+
+    m.querySelector(".close").addEventListener("click", closeModal);
+    m.querySelector("#event-cancel").addEventListener("click", closeModal);
+    m.querySelector("#event-save").addEventListener("click", () => {
+      const title = m.querySelector("#event-title").value.trim();
+      if (!title) {
+        showToast("Event needs a title");
+        m.querySelector("#event-title").focus();
+        return;
+      }
+      const date = m.querySelector("#event-date").value;
+      if (!date) { showToast("Event needs a date"); return; }
+      const isAllDay = allday.checked;
+      const location = m.querySelector("#event-location").value.trim();
+      const notes = m.querySelector("#event-notes").value.trim();
+      const uid = `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}@fairplay-jess.app`;
+
+      let start, end;
+      if (isAllDay) {
+        start = icsDateOnly(date);
+        end = icsDateOnlyPlusOne(date);
+      } else {
+        const sParts = (m.querySelector("#event-start").value || "20:00").split(":");
+        const eParts = (m.querySelector("#event-end").value   || "20:30").split(":");
+        const sh = parseInt(sParts[0], 10) || 0;
+        const sm = parseInt(sParts[1], 10) || 0;
+        const eh = parseInt(eParts[0], 10) || sh;
+        const em = parseInt(eParts[1], 10) || sm;
+        start = icsLocalDateTime(date, sh, sm);
+        end   = icsLocalDateTime(date, eh, em);
+      }
+
+      const ics = buildIcsFile({
+        uid, title, start, end,
+        allDay: isAllDay,
+        description: notes,
+        location
+      });
+      downloadIcs(`${slugify(title)}.ics`, ics);
+      closeModal();
+      showToast("Tap the file to add to a calendar");
     });
   }
 
@@ -1846,6 +2029,8 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     // Add-trip button (trips view)
     const addTripBtn = document.getElementById("add-trip-btn");
     if (addTripBtn) addTripBtn.addEventListener("click", () => openTripModal());
+    const addEventBtn = document.getElementById("add-event-btn");
+    if (addEventBtn) addEventBtn.addEventListener("click", () => openAddEventModal());
     const dashTripsLink = document.getElementById("dash-trips-link");
     if (dashTripsLink) dashTripsLink.addEventListener("click", e => { e.preventDefault(); setView("trips"); });
 
