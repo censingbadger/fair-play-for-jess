@@ -311,6 +311,16 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     return lines.join("\r\n") + "\r\n";
   }
   function downloadIcs(filename, content) {
+    // iOS Safari treats blob downloads (with a `download` attr) as
+    // Save-to-Files and never offers the calendar handler. Navigating to a
+    // data: URL with text/calendar mime makes iOS show the "Add to Calendar"
+    // sheet so the event lands on Outlook/iCloud directly.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "") && !window.MSStream;
+    if (isIOS) {
+      const dataUrl = "data:text/calendar;charset=utf-8," + encodeURIComponent(content);
+      window.location.href = dataUrl;
+      return;
+    }
     const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -338,6 +348,8 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       else if (owner === "mike")  out.mike  += share;
       else if (owner === "asher") out.asher += share;
       else if (owner === "split") { out.jess += share / 2; out.mike += share / 2; }
+      else if (owner === "mostly-jess") { out.jess += share * 0.8; out.mike += share * 0.2; }
+      else if (owner === "mostly-mike") { out.mike += share * 0.8; out.jess += share * 0.2; }
       else out.open += share;
     });
     return out;
@@ -353,6 +365,8 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       else if (owner === "mike")  out.mike  += w;
       else if (owner === "asher") out.asher += w;
       else if (owner === "split") { out.jess += w / 2; out.mike += w / 2; }
+      else if (owner === "mostly-jess") { out.jess += w * 0.8; out.mike += w * 0.2; }
+      else if (owner === "mostly-mike") { out.mike += w * 0.8; out.jess += w * 0.2; }
       else out.open += w;
     });
     return out;
@@ -1186,17 +1200,22 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (filter === "all") return true;
     if (filter === "discuss") return c.status === "discuss";
     if (filter === "open")    return c.status === "open";
-    if (filter === "jess")    return primaryOwner(c) === "jess";
-    if (filter === "mike")    return primaryOwner(c) === "mike";
-    if (filter === "asher")   return primaryOwner(c) === "asher";
-    if (filter === "split")   return primaryOwner(c) === "split";
+    const po = primaryOwner(c);
+    // "Jess" / "Mike" filters also catch the 80/20 lean variants.
+    if (filter === "jess")    return po === "jess"  || po === "mostly-jess";
+    if (filter === "mike")    return po === "mike"  || po === "mostly-mike";
+    if (filter === "asher")   return po === "asher";
+    if (filter === "split")   return po === "split";
     return true;
   }
 
   function primaryOwner(c) {
     // Returns the dominant owner across CPE for badge purposes.
-    const counts = { jess: 0, mike: 0, asher: 0, split: 0, open: 0 };
-    ["C","P","E"].forEach(k => { counts[c.cpe[k]] = (counts[c.cpe[k]] || 0) + 1; });
+    const counts = {};
+    ["C","P","E"].forEach(k => {
+      const o = c.cpe[k] || "open";
+      counts[o] = (counts[o] || 0) + 1;
+    });
     let best = "open", n = -1;
     Object.entries(counts).forEach(([k, v]) => { if (v > n) { best = k; n = v; } });
     return best;
@@ -1261,11 +1280,13 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
             <div class="cpe-pick">
               <div class="lbl"><span class="letter">${k}</span>${k === "C" ? "Notice" : k === "P" ? "Plan" : "Do"}</div>
               <select data-cpe="${k}">
-                <option value="jess"  ${c.cpe[k]==="jess"?"selected":""}>🐧 Jess</option>
-                <option value="mike"  ${c.cpe[k]==="mike"?"selected":""}>🐱 Mike</option>
-                <option value="asher" ${c.cpe[k]==="asher"?"selected":""}>⚾ Asher</option>
-                <option value="split" ${c.cpe[k]==="split"?"selected":""}>🤝 Split</option>
-                <option value="open"  ${c.cpe[k]==="open"?"selected":""}>❓ Open</option>
+                <option value="jess"          ${c.cpe[k]==="jess"?"selected":""}>🐧 Jess</option>
+                <option value="mostly-jess"   ${c.cpe[k]==="mostly-jess"?"selected":""}>🐧⁺ Mostly Jess (80/20)</option>
+                <option value="split"         ${c.cpe[k]==="split"?"selected":""}>🤝 Split (50/50)</option>
+                <option value="mostly-mike"   ${c.cpe[k]==="mostly-mike"?"selected":""}>🐱⁺ Mostly Mike (80/20)</option>
+                <option value="mike"          ${c.cpe[k]==="mike"?"selected":""}>🐱 Mike</option>
+                <option value="asher"         ${c.cpe[k]==="asher"?"selected":""}>⚾ Asher</option>
+                <option value="open"          ${c.cpe[k]==="open"?"selected":""}>❓ Open</option>
               </select>
             </div>
           `).join("")}
@@ -1594,9 +1615,11 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
               <select data-add-cpe="${k}">
                 <option value="open" selected>❓ Open</option>
                 <option value="jess">🐧 Jess</option>
+                <option value="mostly-jess">🐧⁺ Mostly Jess (80/20)</option>
+                <option value="split">🤝 Split (50/50)</option>
+                <option value="mostly-mike">🐱⁺ Mostly Mike (80/20)</option>
                 <option value="mike">🐱 Mike</option>
                 <option value="asher">⚾ Asher</option>
-                <option value="split">🤝 Split</option>
               </select>
             </div>
           `).join("")}
