@@ -1344,6 +1344,36 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         </div>
       </div>
 
+      <details class="card-edit-details">
+        <summary>✏️ Edit card details</summary>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="modal-title" value="${escapeHTML(c.title)}">
+        </div>
+        <div class="field" style="display:flex; gap:.75rem;">
+          <div style="flex:0 0 6rem;">
+            <label>Icon</label>
+            <input type="text" id="modal-icon" value="${escapeHTML(c.icon || "")}" maxlength="4" style="text-align:center; font-size:1.25rem;">
+          </div>
+          <div style="flex:1;">
+            <label>Suit</label>
+            <select id="modal-suit">
+              ${Object.values(window.SUITS).map(s =>
+                `<option value="${s.id}" ${c.suit===s.id?"selected":""}>${s.emoji} ${escapeHTML(s.name)}</option>`
+              ).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea id="modal-description" placeholder="Short description of what this card covers.">${escapeHTML(c.description || "")}</textarea>
+        </div>
+        <div class="field">
+          <label>Discussion prompt</label>
+          <textarea id="modal-prompt" placeholder="A question to surface during the walk-through.">${escapeHTML(c.discussionPrompt || "")}</textarea>
+        </div>
+      </details>
+
       <div class="modal-foot">
         ${isCustomCard(id)
           ? `<button class="btn btn-ghost" id="modal-delete" style="color: var(--rose-400);">🗑 Delete this card</button>`
@@ -1372,6 +1402,33 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     });
     m.querySelector("#modal-msc").addEventListener("change", e => {
       updateCard(id, { minimumStandard: e.target.value });
+    });
+    // Editable card details (title / icon / suit / description / discussion prompt)
+    m.querySelector("#modal-title").addEventListener("change", e => {
+      const val = e.target.value.trim();
+      if (!val) { e.target.value = c.title; return; }
+      updateCard(id, { title: val });
+      const h2 = m.querySelector("h2");
+      const iconNow = (m.querySelector("#modal-icon") && m.querySelector("#modal-icon").value) || c.icon || "";
+      if (h2) h2.textContent = `${iconNow} ${val}`;
+    });
+    m.querySelector("#modal-icon").addEventListener("change", e => {
+      const val = e.target.value.trim() || "🪄";
+      updateCard(id, { icon: val });
+      const h2 = m.querySelector("h2");
+      const titleNow = (m.querySelector("#modal-title") && m.querySelector("#modal-title").value) || c.title;
+      if (h2) h2.textContent = `${val} ${titleNow}`;
+    });
+    m.querySelector("#modal-suit").addEventListener("change", e => {
+      updateCard(id, { suit: e.target.value });
+    });
+    m.querySelector("#modal-description").addEventListener("change", e => {
+      updateCard(id, { description: e.target.value });
+      const desc = m.querySelector(".desc");
+      if (desc) desc.textContent = e.target.value;
+    });
+    m.querySelector("#modal-prompt").addEventListener("change", e => {
+      updateCard(id, { discussionPrompt: e.target.value });
     });
     m.querySelectorAll(".status-pills button").forEach(btn => {
       btn.addEventListener("click", () => {
