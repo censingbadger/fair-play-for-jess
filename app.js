@@ -48,6 +48,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     },
     currentMeeting: { step: 1, notes: { worked: "", didnt: "", forNextWeek: "" } },
     weeklyChoreNotes: {},  // { [cardId]: { jess: "", mike: "", asher: "" } } — per-person notes
+    deletedCards: [],      // ids of pre-fill cards the user has hidden (Reset to pre-fill restores them)
     note: DEFAULT_NOTE,
     walkIndex: 0,
     deckFilter: "all",  // all | discuss | open | jess | mike | split
@@ -135,6 +136,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       }
       if (remote.currentMeeting && typeof remote.currentMeeting === "object") state.currentMeeting = remote.currentMeeting;
       if (remote.weeklyChoreNotes && typeof remote.weeklyChoreNotes === "object") state.weeklyChoreNotes = remote.weeklyChoreNotes;
+      if (Array.isArray(remote.deletedCards)) state.deletedCards = remote.deletedCards;
       if (typeof remote.note === "string" && remote.note.length > 0) {
         state.note = remote.note;
       }
@@ -174,7 +176,17 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
   function allCards() {
     const ids = window.CARDS.map(c => c.id)
       .concat((state.customCards || []).map(c => c.id));
-    return ids.map(id => getCard(id)).filter(Boolean);
+    const deleted = new Set(state.deletedCards || []);
+    return ids.filter(id => !deleted.has(id)).map(id => getCard(id)).filter(Boolean);
+  }
+
+  // Hide a pre-fill card (custom cards use deleteCustomCard which removes
+  // them entirely). "Reset to pre-fill" in Settings unhides everything.
+  function deleteDefaultCard(id) {
+    const list = Array.isArray(state.deletedCards) ? state.deletedCards.slice() : [];
+    if (!list.includes(id)) list.push(id);
+    state.deletedCards = list;
+    saveState();
   }
 
   function updateCard(id, patch) {
@@ -1335,7 +1347,10 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       <div class="modal-foot">
         ${isCustomCard(id)
           ? `<button class="btn btn-ghost" id="modal-delete" style="color: var(--rose-400);">🗑 Delete this card</button>`
-          : `<button class="btn btn-ghost" id="modal-reset">Reset to Mike's pre-fill</button>`}
+          : `
+            <button class="btn btn-ghost" id="modal-reset">Reset to pre-fill</button>
+            <button class="btn btn-ghost" id="modal-delete" style="color: var(--rose-400);">🗑 Delete this card</button>
+          `}
         <div class="spacer"></div>
         <button class="btn btn-primary" id="modal-done">Done</button>
       </div>
@@ -1367,19 +1382,32 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
           b.classList.toggle("discuss", btn.dataset.status === "discuss" && b === btn);
           b.classList.toggle("open",    btn.dataset.status === "open"    && b === btn);
         });
+        // Walk-through UX: marking "We agree" while walking auto-closes the
+        // modal and advances to the next card (the agreed one is now hidden
+        // from the walk by walkOrder()).
+        if (activeView === "walk" && btn.dataset.status === "agreed") {
+          closeModal();
+          renderWalk();
+        }
       });
     });
-    if (isCustomCard(id)) {
-      m.querySelector("#modal-delete").addEventListener("click", () => {
-        if (!confirm("Delete this card? This can't be undone.")) return;
-        deleteCustomCard(id);
-        closeModal();
-        showToast("Card deleted");
-        if (activeView === "deck")      renderDeck();
-        if (activeView === "walk")      { state.walkIndex = 0; saveState(); renderWalk(); }
-        if (activeView === "dashboard") renderDashboard();
-      });
-    } else {
+    // Delete handler — works for both custom and pre-fill cards.
+    m.querySelector("#modal-delete").addEventListener("click", () => {
+      const isCustom = isCustomCard(id);
+      const msg = isCustom
+        ? "Delete this card? This can't be undone."
+        : "Hide this card? You can bring it back via Settings → Reset to pre-fill.";
+      if (!confirm(msg)) return;
+      if (isCustom) deleteCustomCard(id);
+      else          deleteDefaultCard(id);
+      closeModal();
+      showToast(isCustom ? "Card deleted" : "Card hidden");
+      if (activeView === "deck")      renderDeck();
+      if (activeView === "walk")      renderWalk();
+      if (activeView === "dashboard") renderDashboard();
+      if (activeView === "chores")    renderChores();
+    });
+    if (!isCustomCard(id)) {
       m.querySelector("#modal-reset").addEventListener("click", () => {
         delete state.cards[id];
         saveState();
@@ -1827,24 +1855,45 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
 
   // ---------- WALKTHROUGH ----------
   function walkOrder() {
-    // Group by suit, prioritize discuss/open within each suit.
+    // Cards marked "agreed" disappear from the walkthrough — once you've
+    // settled a card you don't need to see it again. Reopen via the Deck.
     const order = [];
     Object.values(window.SUITS).forEach(s => {
-      const inSuit = allCards().filter(c => c.suit === s.id);
-      const priority = inSuit.filter(c => c.status !== "agreed");
-      const rest     = inSuit.filter(c => c.status === "agreed");
-      order.push(...priority, ...rest);
+      const inSuit = allCards().filter(c => c.suit === s.id && c.status !== "agreed");
+      order.push(...inSuit);
     });
     return order;
   }
 
   function renderWalk() {
     const order = walkOrder();
+    const wrap = document.getElementById("walk-card");
+
+    if (order.length === 0) {
+      // Empty state — every card is agreed. Send them somewhere useful.
+      wrap.innerHTML = `
+        <div class="walk-card" style="text-align: center; padding: 3rem 2rem;">
+          <div style="font-size: 4rem; line-height: 1;">🎉</div>
+          <h3 style="margin-top: 1rem;">All cards agreed!</h3>
+          <p class="desc" style="margin: 1rem auto 0; max-width: 28rem;">No cards left to discuss. Reopen any card from the Deck if you want to revisit it later.</p>
+          <button class="btn btn-primary" id="walk-to-deck" type="button" style="margin-top: 1.5rem;">View the deck →</button>
+        </div>
+      `;
+      const toDeck = document.getElementById("walk-to-deck");
+      if (toDeck) toDeck.addEventListener("click", () => setView("deck"));
+      document.getElementById("walk-progress-fill").style.width = "100%";
+      document.getElementById("walk-progress-text").textContent = "All cards agreed ✓";
+      document.getElementById("walk-prev").disabled = true;
+      const nextBtn = document.getElementById("walk-next");
+      nextBtn.disabled = true;
+      nextBtn.textContent = "Done";
+      return;
+    }
+
     const idx = Math.min(state.walkIndex, order.length - 1);
     const c = order[idx];
     if (!c) return;
 
-    const wrap = document.getElementById("walk-card");
     const owner = primaryOwner(c);
     const ownerInfo = window.PEOPLE[owner];
     const t = mentalLoadSplit(c);
@@ -1888,6 +1937,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     const prev = document.getElementById("walk-prev");
     const next = document.getElementById("walk-next");
     prev.disabled = idx === 0;
+    next.disabled = false;
     next.textContent = idx === order.length - 1 ? "See where we landed →" : "Next card →";
   }
 
@@ -2128,6 +2178,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (!confirm("Reset all cards AND note to Mike's original pre-fill? Your discussion edits, any cards you've added, and any trip edits will be lost.")) return;
     state.cards = {};
     state.customCards = [];
+    state.deletedCards = []; // restore any cards the user had hidden
     state.trips = null; // fall back to DEFAULT_TRIPS
     state.walkIndex = 0;
     state.note = DEFAULT_NOTE;
