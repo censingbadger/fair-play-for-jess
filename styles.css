@@ -897,6 +897,26 @@ main {
 }
 .modal-foot .spacer { flex: 1; }
 
+.card-edit-details {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--cream-100);
+  border: 1px solid var(--cream-200);
+  border-radius: 0.5rem;
+}
+.card-edit-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-500);
+  padding: 0.25rem 0;
+  list-style: none;
+  user-select: none;
+}
+.card-edit-details > summary::-webkit-details-marker { display: none; }
+.card-edit-details[open] > summary { color: var(--ink-900); margin-bottom: 0.5rem; }
+.card-edit-details .field { margin-top: 0.75rem; }
+
 /* ─── Walkthrough ─────────────────────────────────────────────────────── */
 .walkthrough {
   max-width: 720px;

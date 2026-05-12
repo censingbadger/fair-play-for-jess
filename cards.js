@@ -364,12 +364,12 @@ const CARDS = [
     discussionPrompt: "Do we even have two? Open card, worth honest answer."
   }),
   card({
-    id: "sick-day", suit: "work", title: "Sick-day coverage", icon: "🤒",
-    description: "Coverage and schedule adjustments when Asher is sick.",
+    id: "sick-day", suit: "work", title: "Sick day and teacher workday coverage", icon: "🤒",
+    description: "Coverage and schedule adjustments when Asher is home — sick days and teacher workdays.",
     cpe: { C: "open", P: "open", E: "open" },
     weeklyHours: 0.25, status: "open",
     minimumStandard: "No automatic default parent.",
-    discussionPrompt: "Be honest — is there a default parent today? (My guess: you.) Should we alternate by month, week, or whoever has lighter day?"
+    discussionPrompt: "Be honest — is there a default parent today? (My guess: you.) Should we alternate by month, week, or whoever has lighter day? Same approach for sick days and teacher workdays?"
   }),
   card({
     id: "work-travel", suit: "work", title: "Work travel coordination", icon: "✈️",
