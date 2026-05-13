@@ -2069,37 +2069,53 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
 
     let html = "";
     people.forEach(person => {
-      const myCards = cards
+      const mineWithSlots = cards
         .map(c => ({ c, slots: personSlotsOnCard(c, person.id) }))
-        .filter(x => x.slots.length > 0)
-        .sort((a, b) => (b.c.weeklyHours || 0) - (a.c.weeklyHours || 0));
+        .filter(x => x.slots.length > 0);
 
-      const cardsHtml = myCards.length === 0
-        ? `<div class="chores-empty">No chores assigned to ${person.name}.</div>`
-        : myCards.map(({ c, slots }) => {
-            // Slot pills: "Notice", "Plan", "Do" — each annotated if it's a split or lean.
-            const slotsHtml = slots.map(k => {
-              const o = c.cpe[k];
-              const share = describeShare(o, person.id);
-              return `<span class="chore-slot">${slotLabel[k]}${share ? ` <small>${share}</small>` : ""}</span>`;
-            }).join("");
-            // "All three" shorthand
-            const allThree = slots.length === 3 ? `<span class="chore-allthree">All three (Notice · Plan · Do)</span>` : "";
-            const note = escapeHTML(getChoreNote(c.id, person.id));
-            return `
-              <div class="chore-card" data-card-id="${c.id}">
-                <div class="chore-head">
-                  <span class="chore-icon">${c.icon}</span>
-                  <div class="chore-title-block">
-                    <div class="chore-title">${escapeHTML(c.title)}</div>
-                    <div class="chore-slots">${allThree || slotsHtml}</div>
-                  </div>
-                  <div class="chore-hours">${c.weeklyHours}h/wk</div>
-                </div>
-                <textarea class="chore-note" placeholder="What needs doing this week? (notes save automatically)" rows="2" data-card-id="${c.id}" data-person="${person.id}">${note}</textarea>
+      // Group by suit; within each suit, sort by hours desc.
+      const bySuit = {};
+      Object.keys(window.SUITS).forEach(s => { bySuit[s] = []; });
+      mineWithSlots.forEach(x => { (bySuit[x.c.suit] || (bySuit[x.c.suit] = [])).push(x); });
+      Object.values(bySuit).forEach(arr => arr.sort((a, b) => (b.c.weeklyHours || 0) - (a.c.weeklyHours || 0)));
+
+      const renderOne = ({ c, slots }) => {
+        const slotsHtml = slots.map(k => {
+          const o = c.cpe[k];
+          const share = describeShare(o, person.id);
+          return `<span class="chore-slot">${slotLabel[k]}${share ? ` <small>${share}</small>` : ""}</span>`;
+        }).join("");
+        const allThree = slots.length === 3 ? `<span class="chore-allthree">All three (Notice · Plan · Do)</span>` : "";
+        const note = escapeHTML(getChoreNote(c.id, person.id));
+        return `
+          <div class="chore-card" data-card-id="${c.id}">
+            <div class="chore-head">
+              <span class="chore-icon">${c.icon}</span>
+              <div class="chore-title-block">
+                <div class="chore-title">${escapeHTML(c.title)}</div>
+                <div class="chore-slots">${allThree || slotsHtml}</div>
               </div>
-            `;
-          }).join("");
+              <div class="chore-hours">${c.weeklyHours}h/wk</div>
+            </div>
+            <textarea class="chore-note" placeholder="What needs doing this week? (notes save automatically)" rows="2" data-card-id="${c.id}" data-person="${person.id}">${note}</textarea>
+          </div>
+        `;
+      };
+
+      const suitsHtml = Object.values(window.SUITS).map(suit => {
+        const items = bySuit[suit.id];
+        if (!items || items.length === 0) return "";
+        return `
+          <div class="chores-suit">
+            <div class="chores-suit-head"><span class="emoji">${suit.emoji}</span>${escapeHTML(suit.name)}</div>
+            <div class="chores-list">${items.map(renderOne).join("")}</div>
+          </div>
+        `;
+      }).join("");
+
+      const sectionBody = mineWithSlots.length === 0
+        ? `<div class="chores-empty">No chores assigned to ${person.name}.</div>`
+        : suitsHtml;
 
       html += `
         <section class="chores-section chores-${person.id}" data-person="${person.id}">
@@ -2107,7 +2123,7 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
             <h3>${person.emoji} ${person.name}'s chores this week</h3>
             <button class="btn btn-secondary btn-sm chores-print" data-person="${person.id}" type="button">🖨 Print ${person.name}'s list</button>
           </div>
-          <div class="chores-list">${cardsHtml}</div>
+          ${sectionBody}
         </section>
       `;
     });
@@ -2120,31 +2136,145 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
       });
     });
 
-    // Print buttons: temporarily mark body so @media print can isolate one person.
+    // Print buttons. Opens a dedicated print window (data: URL) with just the
+    // person's list — works on desktop AND iOS Safari PWA (where the inline
+    // window.print() approach silently no-ops in standalone mode). Falls back
+    // to the in-page CSS-isolated print if the popup is blocked.
     container.querySelectorAll(".chores-print").forEach(btn => {
       btn.addEventListener("click", e => {
-        const person = e.currentTarget.dataset.person;
-        document.body.classList.add("printing", "printing-" + person);
-        const cleanup = () => {
-          document.body.classList.remove("printing", "printing-jess", "printing-mike", "printing-asher");
-          window.removeEventListener("afterprint", cleanup);
-        };
-        window.addEventListener("afterprint", cleanup);
-        // Must be called synchronously inside the click handler — iOS Safari
-        // (especially in standalone PWA mode) drops window.print() if it's
-        // deferred via setTimeout because the user-gesture context is lost.
-        try {
-          window.print();
-        } catch (err) {
-          showToast("Print not available — try the Share menu instead");
-          cleanup();
-        }
-        // Fallback safety: if the print dialog never fires (some iOS PWA
-        // versions silently no-op), strip the printing class after 5s so the
-        // app isn't stuck in print-mode.
-        setTimeout(cleanup, 5000);
+        const personId = e.currentTarget.dataset.person;
+        const person = allPeople.find(p => p.id === personId);
+        if (!person) return;
+        printPersonChores(person, cards);
       });
     });
+  }
+
+  // ---------- PRINT: per-person chores in a dedicated tab ----------
+  function buildChoresPrintHTML(person, cards) {
+    const slotLabel = { C: "Notice", P: "Plan", E: "Do" };
+    const mine = cards
+      .map(c => ({ c, slots: personSlotsOnCard(c, person.id) }))
+      .filter(x => x.slots.length > 0);
+    const bySuit = {};
+    Object.keys(window.SUITS).forEach(s => { bySuit[s] = []; });
+    mine.forEach(x => { (bySuit[x.c.suit] || (bySuit[x.c.suit] = [])).push(x); });
+    Object.values(bySuit).forEach(arr => arr.sort((a, b) => (b.c.weeklyHours || 0) - (a.c.weeklyHours || 0)));
+
+    const suitsHtml = Object.values(window.SUITS).map(suit => {
+      const items = bySuit[suit.id];
+      if (!items || items.length === 0) return "";
+      const cardsHtml = items.map(({ c, slots }) => {
+        const slotsHtml = slots.length === 3
+          ? `<span class="allthree">All three (Notice · Plan · Do)</span>`
+          : slots.map(k => {
+              const share = describeShare(c.cpe[k], person.id);
+              return `<span class="slot">${slotLabel[k]}${share ? ` <em>${escapeHTML(share)}</em>` : ""}</span>`;
+            }).join("");
+        const note = escapeHTML(getChoreNote(c.id, person.id));
+        return `
+          <div class="cc">
+            <div class="hd">
+              <span class="ic">${c.icon}</span>
+              <div class="tb">
+                <div class="ti">${escapeHTML(c.title)}</div>
+                <div class="sl">${slotsHtml}</div>
+              </div>
+              <div class="hr">${c.weeklyHours}h/wk</div>
+            </div>
+            <div class="nt">${note}</div>
+          </div>
+        `;
+      }).join("");
+      return `
+        <section class="suit">
+          <h3>${suit.emoji} ${escapeHTML(suit.name)}</h3>
+          <div class="cards">${cardsHtml}</div>
+        </section>
+      `;
+    }).join("");
+
+    const today = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+    return `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>${person.emoji} ${escapeHTML(person.name)}'s chores</title>
+<style>
+  @page { margin: 0.4in; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 10.5px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Inter", sans-serif;
+    color: #1C1917;
+    background: white;
+    padding: 0;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border-bottom: 2px solid #1C1917; padding-bottom: 0.35rem; margin-bottom: 0.6rem; }
+  h1 { font-family: "Fraunces", Georgia, serif; font-size: 1.15rem; font-weight: 500; margin: 0; letter-spacing: -0.01em; }
+  .date { font-size: 0.7rem; color: #78716C; }
+  .suit { margin-bottom: 0.55rem; break-inside: avoid; }
+  .suit h3 { font-family: "Fraunces", Georgia, serif; font-size: 0.9rem; font-weight: 600; margin: 0 0 0.25rem; padding-bottom: 0.15rem; border-bottom: 1px dashed #ccc; letter-spacing: -0.01em; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; }
+  .cc { border: 1px solid #ccc; border-radius: 5px; padding: 0.3rem 0.4rem; break-inside: avoid; page-break-inside: avoid; }
+  .hd { display: grid; grid-template-columns: auto 1fr auto; gap: 0.35rem; align-items: start; margin-bottom: 0.2rem; }
+  .ic { font-size: 0.95rem; line-height: 1; }
+  .ti { font-weight: 600; font-size: 0.78rem; line-height: 1.18; }
+  .sl { margin-top: 0.12rem; display: flex; gap: 0.18rem; flex-wrap: wrap; }
+  .slot, .allthree { font-size: 0.58rem; padding: 0.04rem 0.32rem; border: 1px solid #ccc; border-radius: 999px; color: #555; white-space: nowrap; }
+  .slot em { font-style: normal; color: #888; margin-left: 0.15rem; }
+  .hr { font-size: 0.58rem; color: #888; white-space: nowrap; align-self: center; }
+  .nt {
+    min-height: 22px;
+    border: 1px dashed #888;
+    border-radius: 4px;
+    padding: 0.15rem 0.3rem;
+    font-size: 0.7rem;
+    line-height: 1.25;
+    white-space: pre-wrap;
+  }
+  @media screen {
+    body { padding: 1.5rem; max-width: 900px; margin: 0 auto; background: #FFF9EE; }
+    .actions { position: fixed; top: 1rem; right: 1rem; display: flex; gap: 0.5rem; }
+    .actions button { font: inherit; font-size: 0.85rem; padding: 0.5rem 1rem; border-radius: 999px; border: 1px solid #ccc; background: white; cursor: pointer; }
+    .actions button.primary { background: #1C1917; color: white; border-color: #1C1917; }
+  }
+  @media print {
+    .actions { display: none; }
+  }
+</style>
+</head><body>
+<header>
+  <h1>${person.emoji} ${escapeHTML(person.name)}'s chores this week</h1>
+  <div class="date">${escapeHTML(today)}</div>
+</header>
+${suitsHtml || '<p>No chores assigned.</p>'}
+<div class="actions">
+  <button onclick="window.close()">Close</button>
+  <button class="primary" onclick="window.print()">🖨 Print</button>
+</div>
+<script>window.addEventListener("load", function(){ setTimeout(function(){ try { window.print(); } catch(e){} }, 300); });<\/script>
+</body></html>`;
+  }
+
+  function printPersonChores(person, cards) {
+    const html = buildChoresPrintHTML(person, cards);
+    const w = window.open("", "_blank");
+    if (w && w.document) {
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      return;
+    }
+    // Popup blocked or window.open returned null — fall back to in-page CSS print.
+    document.body.classList.add("printing", "printing-" + person.id);
+    const cleanup = () => {
+      document.body.classList.remove("printing", "printing-jess", "printing-mike", "printing-asher");
+      window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    try { window.print(); } catch (err) { showToast("Print not available — allow popups or use Share → Print"); cleanup(); return; }
+    setTimeout(cleanup, 15000);
   }
 
   // ---------- DASHBOARD ----------
