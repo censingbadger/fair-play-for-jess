@@ -51,7 +51,8 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     deletedCards: [],      // ids of pre-fill cards the user has hidden (Reset to pre-fill restores them)
     note: DEFAULT_NOTE,
     walkIndex: 0,
-    deckFilter: "all",  // all | discuss | open | jess | mike | split
+    deckFilter: "all",   // all | discuss | open | jess | mike | split
+    choresFilter: "all", // all | jess | mike | asher — per-device, not synced
     lastSaved: null
   };
 
@@ -2054,11 +2055,17 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
     if (!container) return;
     const cards = allCards();
     const slotLabel = { C: "Notice", P: "Plan", E: "Do" };
-    const people = [
+    const filter = state.choresFilter || "all";
+    // Reflect filter selection in the pill UI.
+    document.querySelectorAll("#chores-filters button").forEach(b => {
+      b.classList.toggle("active", b.dataset.filter === filter);
+    });
+    const allPeople = [
       { id: "jess",  name: "Jess",  emoji: "🐧" },
       { id: "mike",  name: "Mike",  emoji: "🐱" },
       { id: "asher", name: "Asher", emoji: "⚾" }
     ];
+    const people = filter === "all" ? allPeople : allPeople.filter(p => p.id === filter);
 
     let html = "";
     people.forEach(person => {
@@ -2294,6 +2301,15 @@ I love you. Asher does too. And Stripes loves us all, and bunlers.
         state.deckFilter = b.dataset.filter;
         saveState();
         renderDeck();
+      });
+    });
+
+    // Chores filters (per-device — controls which person's chores are visible)
+    document.querySelectorAll("#chores-filters button").forEach(b => {
+      b.addEventListener("click", () => {
+        state.choresFilter = b.dataset.filter;
+        saveState();
+        renderChores();
       });
     });
 

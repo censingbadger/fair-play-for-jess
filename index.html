@@ -11,12 +11,12 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Fair Play" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.jpg?v=37" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.jpg?v=38" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600;1,9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=37" />
+  <link rel="stylesheet" href="styles.css?v=38" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E🐧%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
@@ -252,6 +252,14 @@
     <div class="eyebrow">This week</div>
     <h2>Chores by person</h2>
     <p class="lead">Each person's cards for the week, with the CPE slots they own. Click into any card to add a note about what needs doing this week. Tap "Print" to leave one person's list on the fridge.</p>
+  </div>
+  <div class="deck-controls">
+    <div class="filter-pills" id="chores-filters">
+      <button data-filter="all" class="active" type="button">Everyone</button>
+      <button data-filter="jess" type="button">🐧 Jess</button>
+      <button data-filter="mike" type="button">🐱 Mike</button>
+      <button data-filter="asher" type="button">⚾ Asher</button>
+    </div>
   </div>
   <div id="chores-container"></div>
 </section>
@@ -692,7 +700,7 @@
   window.dispatchEvent(new CustomEvent("fp-sync-ready"));
 </script>
 
-<script src="cards.js?v=37"></script>
-<script src="app.js?v=37"></script>
+<script src="cards.js?v=38"></script>
+<script src="app.js?v=38"></script>
 </body>
 </html>
